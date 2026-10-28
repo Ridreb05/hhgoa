@@ -246,3 +246,4 @@ export function HistoryView({ onSelectInvestigation }: HistoryViewProps) {
     </div>
   );
 }
+

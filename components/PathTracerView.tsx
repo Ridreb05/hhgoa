@@ -274,3 +274,4 @@ export function PathTracerView({ onSelectWallet }: PathTracerViewProps) {
     </div>
   );
 }
+

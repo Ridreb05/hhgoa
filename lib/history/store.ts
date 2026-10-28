@@ -133,3 +133,4 @@ class InvestigationHistoryStore {
 }
 
 export const defaultHistoryStore = new InvestigationHistoryStore();
+

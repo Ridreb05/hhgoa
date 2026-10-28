@@ -86,3 +86,4 @@ CREATE QUERY ghostshield_sybil_clusters(
 }
 
 INSTALL QUERY ghostshield_sybil_clusters
+

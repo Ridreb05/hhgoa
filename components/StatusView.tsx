@@ -12,13 +12,26 @@ import {
   RotateCcw,
   ExternalLink,
   ShieldAlert,
+  Repeat,
+  Check,
+  HelpCircle,
 } from 'lucide-react';
 
 export function StatusView() {
   const [healthData, setHealthData] = useState<any>(null);
   const [isLoadingHealth, setIsLoadingHealth] = useState<boolean>(false);
+
+  // AIGI Test State
+  const [aiTestResult, setAiTestResult] = useState<any>(null);
+  const [isTestingAI, setIsTestingAI] = useState<boolean>(false);
+
+  // viaSocket State
+  const [viasocketData, setViasocketData] = useState<any>(null);
   const [testAlertResult, setTestAlertResult] = useState<any>(null);
   const [isSendingTestAlert, setIsSendingTestAlert] = useState<boolean>(false);
+  const [retryingLogId, setRetryingLogId] = useState<string | null>(null);
+
+  // Demo Reset State
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
   const fetchHealth = async () => {
@@ -34,9 +47,37 @@ export function StatusView() {
     }
   };
 
+  const fetchViaSocketLogs = async () => {
+    try {
+      const res = await fetch('/api/alerts/viasocket');
+      const data = await res.json();
+      setViasocketData(data);
+    } catch (err) {
+      console.error('Failed to load viaSocket logs:', err);
+    }
+  };
+
   useEffect(() => {
     fetchHealth();
+    fetchViaSocketLogs();
   }, []);
+
+  const handleTestAI = async () => {
+    setIsTestingAI(true);
+    setAiTestResult(null);
+    try {
+      const res = await fetch('/api/ai/report');
+      const data = await res.json();
+      setAiTestResult(data);
+    } catch (err: any) {
+      setAiTestResult({
+        connected: false,
+        message: `Network error: ${err.message}`,
+      });
+    } finally {
+      setIsTestingAI(false);
+    }
+  };
 
   const handleTestViaSocket = async () => {
     setIsSendingTestAlert(true);
@@ -49,6 +90,7 @@ export function StatusView() {
       });
       const data = await res.json();
       setTestAlertResult(data);
+      fetchViaSocketLogs();
     } catch (err: any) {
       setTestAlertResult({
         success: false,
@@ -57,6 +99,22 @@ export function StatusView() {
       });
     } finally {
       setIsSendingTestAlert(false);
+    }
+  };
+
+  const handleRetryAlert = async (logId: string) => {
+    setRetryingLogId(logId);
+    try {
+      await fetch('/api/alerts/viasocket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retry_id: logId }),
+      });
+      fetchViaSocketLogs();
+    } catch (err) {
+      console.error('Retry failed:', err);
+    } finally {
+      setRetryingLogId(null);
     }
   };
 
@@ -77,23 +135,26 @@ export function StatusView() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-white uppercase tracking-wider">
-            System Infrastructure & Service Telemetry
+            System Infrastructure & Integration Telemetry
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Real-time status for TigerGraph Cloud, AI synthesis engine, and viaSocket alerts
+            Real-time status for TigerGraph Cloud, AI Grants India (AIGI) model routing, and viaSocket incident webhooks
           </p>
         </div>
         <button
-          onClick={fetchHealth}
+          onClick={() => {
+            fetchHealth();
+            fetchViaSocketLogs();
+          }}
           disabled={isLoadingHealth}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoadingHealth ? 'animate-spin' : ''}`} />
-          <span>Refresh Health</span>
+          <span>Refresh All Services</span>
         </button>
       </div>
 
-      {/* Services Grid */}
+      {/* Services Grid (3 Columns) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* 1. TigerGraph Cloud Status Card */}
         <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-col justify-between space-y-4">
@@ -129,7 +190,7 @@ export function StatusView() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Measured Latency:</span>
-                <span className="font-mono text-emerald-400">
+                <span className="font-mono text-emerald-400 font-bold">
                   {healthData?.services?.graph_provider?.latency_ms !== undefined
                     ? `${healthData.services.graph_provider.latency_ms} ms`
                     : '--'}
@@ -143,18 +204,18 @@ export function StatusView() {
             </p>
           </div>
 
-          <div className="text-[10px] text-slate-500">
-            To switch to live TigerGraph Cloud, configure <code className="text-cyan-400">TIGERGRAPH_HOST</code> in <code className="text-slate-400">.env</code>.
+          <div className="text-[10px] text-slate-500 bg-[#0b1120] p-2 rounded border border-slate-800/80">
+            Set <code className="text-cyan-400">TIGERGRAPH_HOST</code> in <code className="text-slate-400">.env</code> to connect live cluster.
           </div>
         </div>
 
-        {/* 2. AI Synthesis Engine */}
+        {/* 2. AI Grants India (AIGI) Narrative Engine Card */}
         <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-cyan-400" />
-                <span className="font-semibold text-white text-sm">AI Narrative Engine</span>
+                <span className="font-semibold text-white text-sm">AI Grants India (AIGI)</span>
               </div>
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${
@@ -163,77 +224,107 @@ export function StatusView() {
                     : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                 }`}
               >
-                {healthData?.services?.ai_engine?.status || 'CHECKING...'}
+                {healthData?.services?.ai_engine?.status === 'CONFIGURED'
+                  ? 'LIVE AIGI ROUTER'
+                  : 'STANDBY TEMPLATE'}
               </span>
             </div>
 
             <div className="mt-4 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Provider:</span>
+                <span className="text-slate-400">Router Provider:</span>
                 <span className="font-medium text-slate-200">
-                  {healthData?.services?.ai_engine?.provider || 'Deterministic Template'}
+                  {healthData?.services?.ai_engine?.provider || 'AI Grants India'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Target Model:</span>
-                <span className="font-mono text-slate-200">
-                  {healthData?.services?.ai_engine?.model || 'gpt-4o-mini'}
+                <span className="font-mono text-cyan-300">
+                  {healthData?.services?.ai_engine?.model || 'openai/gpt-4o-mini'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Fallback Protection:</span>
-                <span className="text-emerald-400 font-medium">Zero-Hallucination Template</span>
+                <span className="text-emerald-400 font-medium">Deterministic Rule Engine</span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-800 leading-relaxed">
-              Synthesizes structured TigerGraph evidence into human-readable forensic reports. Scoring remains 100% deterministic.
+              Produces structured natural language dossiers strictly cited from verified TigerGraph topological paths.
             </p>
           </div>
 
-          <div className="text-[10px] text-slate-500">
-            Set <code className="text-cyan-400">AIGI_API_KEY</code> or <code className="text-cyan-400">OPENAI_API_KEY</code> to enable live LLM generation.
+          <div className="space-y-2">
+            <button
+              onClick={handleTestAI}
+              disabled={isTestingAI}
+              className="w-full py-1.5 px-3 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isTestingAI ? 'Pinging AIGI Endpoint...' : 'Test AIGI Model Connection'}</span>
+            </button>
+
+            {aiTestResult && (
+              <div
+                className={`p-2 rounded text-[11px] ${
+                  aiTestResult.connected
+                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-cyan-950/40 border border-cyan-500/40 text-cyan-300'
+                }`}
+              >
+                <div className="flex justify-between">
+                  <span>{aiTestResult.message}</span>
+                  {aiTestResult.latency_ms > 0 && (
+                    <span className="font-mono font-bold">{aiTestResult.latency_ms} ms</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="text-[10px] text-slate-500 bg-[#0b1120] p-2 rounded border border-slate-800/80">
+              Set <code className="text-cyan-400">AIGI_API_KEY</code> to enable live LLM synthesis.
+            </div>
           </div>
         </div>
 
-        {/* 3. viaSocket Webhook Dispatcher */}
+        {/* 3. viaSocket Webhook Dispatcher Card */}
         <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-col justify-between space-y-4">
           <div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Send className="w-5 h-5 text-purple-400" />
-                <span className="font-semibold text-white text-sm">viaSocket Webhook</span>
+                <span className="font-semibold text-white text-sm">viaSocket Webhooks</span>
               </div>
               <span
                 className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${
-                  healthData?.services?.viasocket_alerts?.webhook_configured
+                  viasocketData?.webhook_configured
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 }`}
               >
-                {healthData?.services?.viasocket_alerts?.status || 'UNCONFIGURED'}
+                {viasocketData?.webhook_configured ? 'CONNECTED' : 'UNCONFIGURED'}
               </span>
             </div>
 
             <div className="mt-4 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-slate-400">Webhook Config:</span>
-                <span className="font-mono text-slate-200">
-                  {healthData?.services?.viasocket_alerts?.webhook_configured ? 'Configured' : 'Missing URL'}
+                <span className="text-slate-400">Workflow URL:</span>
+                <span className="font-mono text-slate-300 truncate max-w-[150px]">
+                  {viasocketData?.webhook_url_masked || 'Not Configured'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Auto Trigger:</span>
-                <span className="text-slate-200">Score ≥ 65 (REJECT)</span>
+                <span className="text-slate-400">Incident Auto-Fire:</span>
+                <span className="text-red-400 font-semibold font-mono">Score ≥ 65 (REJECT)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Timeout Cap:</span>
+                <span className="text-slate-400">Timeout Limit:</span>
                 <span className="font-mono text-slate-200">4000 ms</span>
               </div>
             </div>
 
             <p className="text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-800 leading-relaxed">
-              Dispatches incident webhooks to viaSocket workflow automation for Slack, Discord, or pager escalations.
+              Dispatches structured JSON incident alerts directly to viaSocket inbound flows for automated notification in Slack, Discord, or SMS.
             </p>
           </div>
 
@@ -244,7 +335,7 @@ export function StatusView() {
               className="w-full py-1.5 px-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg font-medium text-xs transition-colors flex items-center justify-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>{isSendingTestAlert ? 'Testing Delivery...' : 'Send Test Ping to viaSocket'}</span>
+              <span>{isSendingTestAlert ? 'Testing Dispatch...' : 'Dispatch Test Alert to viaSocket'}</span>
             </button>
 
             {testAlertResult && (
@@ -260,32 +351,140 @@ export function StatusView() {
                 [{testAlertResult.status}] {testAlertResult.message}
               </div>
             )}
+
+            <div className="text-[10px] text-slate-500 bg-[#0b1120] p-2 rounded border border-slate-800/80">
+              Set <code className="text-purple-400">VIASOCKET_WEBHOOK_URL</code> in <code className="text-slate-400">.env</code>.
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Demo Reset Card */}
-      <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
-            <RotateCcw className="w-4 h-4 text-cyan-400" />
-            <span>Reset Demo Synthetic Graph Data</span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Restores in-memory wallets, transfers, and funding sources back to initial deterministic seed fixtures
-          </p>
+      {/* viaSocket Live Webhook Incident Log Table */}
+      <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-4 shadow-lg">
+        <div className="flex items-center justify-between border-b border-card-border pb-3">
+          <div className="flex items-center gap-2">
+            <Send className="w-4 h-4 text-purple-400" />
+            <h3 className="text-xs font-semibold text-white uppercase tracking-wider">
+              viaSocket Alert Dispatch Telemetry Log
+            </h3>
+          </div>
+          <span className="text-[11px] font-mono text-slate-400">
+            Total Dispatched: {viasocketData?.total_logs || 0}
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          {resetMessage && (
-            <span className="text-xs text-emerald-400 font-medium">{resetMessage}</span>
-          )}
-          <button
-            onClick={handleResetDemoData}
-            className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-colors"
-          >
-            Reset In-Memory Data
-          </button>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300 border-collapse">
+            <thead>
+              <tr className="bg-[#111827] border-b border-slate-800 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                <th className="py-2.5 px-3">Log ID</th>
+                <th className="py-2.5 px-3">Timestamp</th>
+                <th className="py-2.5 px-3">Event Type</th>
+                <th className="py-2.5 px-3">Wallet</th>
+                <th className="py-2.5 px-3 text-center">Score</th>
+                <th className="py-2.5 px-3 text-center">Delivery Status</th>
+                <th className="py-2.5 px-3">Details</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800 font-mono text-[11px]">
+              {(viasocketData?.logs || []).map((l: any) => (
+                <tr key={l.id} className="hover:bg-slate-850/50">
+                  <td className="py-2.5 px-3 text-purple-300 font-semibold">{l.id}</td>
+                  <td className="py-2.5 px-3 text-[10px] text-slate-400">
+                    {new Date(l.timestamp).toLocaleTimeString()}
+                  </td>
+                  <td className="py-2.5 px-3 text-slate-300">{l.event}</td>
+                  <td className="py-2.5 px-3 text-cyan-300">{l.walletId}</td>
+                  <td className="py-2.5 px-3 text-center font-bold text-red-400">
+                    {l.riskScore}/100
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        l.status === 'DELIVERED'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : l.status === 'UNCONFIGURED'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                      }`}
+                    >
+                      {l.status} {l.httpStatus ? `(${l.httpStatus})` : ''}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 text-[10px] text-slate-400 max-w-xs truncate">
+                    {l.message}
+                  </td>
+                  <td className="py-2.5 px-3 text-right">
+                    <button
+                      onClick={() => handleRetryAlert(l.id)}
+                      disabled={retryingLogId === l.id}
+                      className="px-2 py-0.5 rounded bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 text-[10px] font-medium transition-colors"
+                    >
+                      {retryingLogId === l.id ? 'Retrying...' : 'Resend'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              {(!viasocketData?.logs || viasocketData.logs.length === 0) && (
+                <tr>
+                  <td colSpan={8} className="py-6 text-center text-slate-500 italic">
+                    No webhooks dispatched in this session yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Integration Setup Guide & Demo Reset */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Quick Config Guide */}
+        <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-3 text-xs">
+          <div className="flex items-center gap-2 text-white font-semibold">
+            <HelpCircle className="w-4 h-4 text-cyan-400" />
+            <span className="uppercase text-xs tracking-wider">How to Configure Live Integrations</span>
+          </div>
+          <ol className="list-decimal list-inside space-y-1.5 text-slate-400 leading-relaxed text-[11px]">
+            <li>
+              <strong className="text-slate-300">AI Grants India (AIGI):</strong> Add your API key as <code className="text-cyan-400">AIGI_API_KEY</code> and router base URL as <code className="text-cyan-400">AIGI_API_ENDPOINT</code> in <code className="text-slate-300">.env.local</code>.
+            </li>
+            <li>
+              <strong className="text-slate-300">viaSocket Webhooks:</strong> Create a viaSocket workflow with a Webhook Trigger. Copy the endpoint URL and set <code className="text-purple-400">VIASOCKET_WEBHOOK_URL</code> in <code className="text-slate-300">.env.local</code>.
+            </li>
+            <li>
+              <strong className="text-slate-300">TigerGraph Cloud:</strong> Set <code className="text-emerald-400">GHOSTSHIELD_ENGINE_MODE=tigergraph</code> with your cluster credentials.
+            </li>
+          </ol>
+        </div>
+
+        {/* Demo Reset Card */}
+        <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-col justify-between space-y-3">
+          <div>
+            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <RotateCcw className="w-4 h-4 text-cyan-400" />
+              <span>Reset Synthetic Graph State</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              Restores all in-memory entities, cyclic transfers, and funding sources back to the initial deterministic seed fixtures.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            {resetMessage ? (
+              <span className="text-xs text-emerald-400 font-medium">{resetMessage}</span>
+            ) : (
+              <span className="text-[11px] text-slate-500">Seed: Scenarios A–E</span>
+            )}
+            <button
+              onClick={handleResetDemoData}
+              className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-colors"
+            >
+              Reset Graph State
+            </button>
+          </div>
         </div>
       </div>
     </div>

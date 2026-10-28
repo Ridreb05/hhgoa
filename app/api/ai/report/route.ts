@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { defaultAIReportGenerator } from '@/lib/ai/report-generator';
 import { RiskAssessment } from '@/lib/graph/types';
 
+export async function GET() {
+  const health = await defaultAIReportGenerator.testConnection();
+  return NextResponse.json(health);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

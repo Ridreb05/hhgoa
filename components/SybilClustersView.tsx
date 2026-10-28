@@ -238,3 +238,4 @@ export function SybilClustersView({ onSelectWallet }: SybilClustersViewProps) {
     </div>
   );
 }
+

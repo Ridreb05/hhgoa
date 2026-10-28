@@ -39,3 +39,4 @@ export async function DELETE() {
     message: 'Investigation history successfully reset.',
   });
 }
+

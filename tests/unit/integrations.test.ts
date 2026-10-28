@@ -4,7 +4,7 @@ import { AIReportGenerator } from '@/lib/ai/report-generator';
 import { ViaSocketNotifier } from '@/lib/integrations/viasocket';
 import { RiskAssessment } from '@/lib/graph/types';
 
-describe('Integrations & Boundary Tests', () => {
+describe('Integrations & Boundary Tests: TigerGraph, AIGI & viaSocket', () => {
   it('TigerGraphAdapter accurately reports UNCONFIGURED status when credentials are not present', async () => {
     const adapter = new TigerGraphAdapter({ host: '', graphName: 'GhostShieldGraph' });
     const health = await adapter.checkHealth();
@@ -62,10 +62,20 @@ describe('Integrations & Boundary Tests', () => {
     expect(report.executive_summary).toContain('GhostShield Forensic Synthesis');
     expect(report.detailed_findings.length).toBeGreaterThan(0);
     expect(report.recommended_analyst_actions.length).toBeGreaterThan(0);
+    expect(report.graph_evidence_citations.length).toBeGreaterThan(0);
     expect(report.disclaimer).toContain('Zero hallucination guarantee');
   });
 
-  it('ViaSocketNotifier reports UNCONFIGURED and does not fabricate delivery when unconfigured', async () => {
+  it('AIReportGenerator.testConnection accurately reports unconfigured state when keys are absent', async () => {
+    const generator = new AIReportGenerator();
+    const health = await generator.testConnection();
+
+    expect(health.configured).toBe(false);
+    expect(health.connected).toBe(false);
+    expect(health.message).toContain('AIGI_API_KEY environment variable is not configured');
+  });
+
+  it('ViaSocketNotifier reports UNCONFIGURED and records telemetry without fabricating delivery', async () => {
     const notifier = new ViaSocketNotifier();
     // In test environment, VIASOCKET_WEBHOOK_URL is not set
     const result = await notifier.sendTestAlert();
@@ -73,5 +83,13 @@ describe('Integrations & Boundary Tests', () => {
     expect(result.status).toBe('UNCONFIGURED');
     expect(result.success).toBe(false);
     expect(result.message).toContain('VIASOCKET_WEBHOOK_URL is not set');
+
+    // Telemetry log verification
+    const logs = notifier.getLogs();
+    expect(logs.length).toBeGreaterThan(0);
+    const lastLog = logs[0];
+    expect(lastLog.status).toBe('UNCONFIGURED');
+    expect(lastLog.payload.event).toBe('TEST_NOTIFICATION');
+    expect(lastLog.payload.severity).toBe('CRITICAL');
   });
 });

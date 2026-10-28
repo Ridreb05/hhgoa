@@ -80,3 +80,4 @@ CREATE QUERY ghostshield_path_find(
 }
 
 INSTALL QUERY ghostshield_path_find
+
