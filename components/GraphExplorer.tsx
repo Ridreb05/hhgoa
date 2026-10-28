@@ -124,28 +124,28 @@ export function GraphExplorer({
     setIsDraggingCanvas(false);
   };
 
-  // Node coloring by disciplined role (Un-slopped: eliminated rainbow candy palette)
+  // Node coloring by disciplined role (Financial System tokens)
   const getNodeFill = (node: GraphNode) => {
-    if (node.is_risk_seed) return '#f43f5e'; // Rose 500 (Risk seed)
-    if (highlightedNodeIds.includes(node.id)) return '#f59e0b'; // Amber 500 (Highlight)
+    if (node.is_risk_seed) return '#f43f5e'; // Rose (Sanction / Risk seed)
+    if (highlightedNodeIds.includes(node.id)) return '#edcd8c'; // Pale Gold (Target highlight)
     switch (node.category) {
       case 'wallet':
-        return '#38bdf8'; // Sky 400
+        return '#38bdf8'; // Sky 400 (Wallet)
       case 'funding_source':
-        return '#818cf8'; // Indigo 400
+        return '#ff951f'; // Warm Orange (Liquidity Origin / Mixer)
       case 'agent':
-        return '#94a3b8'; // Slate 400
+        return '#c9ced8'; // Ink Muted (Autonomous Agent)
       case 'smart_contract':
-        return '#2dd4bf'; // Teal 400
+        return '#2dd4bf'; // Teal (Smart Contract)
       default:
         return '#64748b'; // Slate 500
     }
   };
 
   const getNodeStroke = (node: GraphNode) => {
-    if (node.id === selectedNode?.id) return '#ffffff';
+    if (node.id === selectedNode?.id) return '#edcd8c';
     if (node.is_risk_seed) return '#fda4af';
-    return '#1e293b';
+    return '#303139';
   };
 
   // Filtered nodes
@@ -171,53 +171,63 @@ export function GraphExplorer({
   };
 
   return (
-    <div className="relative w-full h-[640px] bg-[#080b11] rounded-none border border-[#1b2333] overflow-hidden flex flex-col font-mono">
+    <div className="relative w-full h-[640px] bg-[#07090e] rounded-[5px] border border-[#303139] overflow-hidden flex flex-col font-sans">
       {/* Top Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#0d121c] border-b border-[#1b2333] z-10 gap-2">
+      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-[#10141c] border-b border-[#303139] z-10 gap-2">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200 tracking-wider">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#f4f5f7] tracking-wider">
+            <Layers className="w-3.5 h-3.5 text-[#ff951f]" />
             <span>TOPOLOGY GRAPH</span>
           </div>
 
           {/* Node Category Filters */}
-          <div className="flex items-center border border-[#1b2333] bg-[#080b11] text-[11px]">
+          <div className="flex items-center gap-1 bg-[#07090e] p-1 rounded-[40px] border border-[#303139] text-xs font-mono">
             <button
               onClick={() => setFilterCategory('all')}
-              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
-                filterCategory === 'all' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1 rounded-[40px] transition-all duration-[160ms] ease-out ${
+                filterCategory === 'all'
+                  ? 'bg-[#ff951f] text-[#07090e] font-bold'
+                  : 'text-[#c9ced8] hover:text-[#f4f5f7]'
               }`}
             >
               ALL ({topology.nodes.length})
             </button>
             <button
               onClick={() => setFilterCategory('wallet')}
-              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
-                filterCategory === 'wallet' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-[40px] transition-all duration-[160ms] ease-out ${
+                filterCategory === 'wallet'
+                  ? 'bg-[#ff951f] text-[#07090e] font-bold'
+                  : 'text-[#c9ced8] hover:text-[#f4f5f7]'
               }`}
             >
               WALLETS
             </button>
             <button
               onClick={() => setFilterCategory('funding_source')}
-              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
-                filterCategory === 'funding_source' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-[40px] transition-all duration-[160ms] ease-out ${
+                filterCategory === 'funding_source'
+                  ? 'bg-[#ff951f] text-[#07090e] font-bold'
+                  : 'text-[#c9ced8] hover:text-[#f4f5f7]'
               }`}
             >
               FUNDING
             </button>
             <button
               onClick={() => setFilterCategory('agent')}
-              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
-                filterCategory === 'agent' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-[40px] transition-all duration-[160ms] ease-out ${
+                filterCategory === 'agent'
+                  ? 'bg-[#ff951f] text-[#07090e] font-bold'
+                  : 'text-[#c9ced8] hover:text-[#f4f5f7]'
               }`}
             >
               AGENTS
             </button>
             <button
               onClick={() => setFilterCategory('smart_contract')}
-              className={`px-2.5 py-1 transition-colors ${
-                filterCategory === 'smart_contract' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-[40px] transition-all duration-[160ms] ease-out ${
+                filterCategory === 'smart_contract'
+                  ? 'bg-[#ff951f] text-[#07090e] font-bold'
+                  : 'text-[#c9ced8] hover:text-[#f4f5f7]'
               }`}
             >
               CONTRACTS
@@ -226,37 +236,37 @@ export function GraphExplorer({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 text-[11px]">
+        <div className="flex items-center gap-2 text-xs font-mono">
           <button
             onClick={() => setHighlightCycles(!highlightCycles)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-[40px] border transition-all duration-[160ms] ease-out ${
               highlightCycles
-                ? 'bg-amber-950/30 border-amber-500/50 text-amber-300 font-semibold'
-                : 'bg-[#080b11] border-[#1b2333] text-slate-400 hover:text-white'
+                ? 'bg-[#101522] border-[#ff951f] text-[#ff951f] font-bold'
+                : 'bg-[#07090e] border-[#303139] text-[#c9ced8] hover:text-[#f4f5f7]'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>CYCLE DETECTOR</span>
           </button>
 
-          <div className="flex items-center border border-[#1b2333] bg-[#080b11]">
+          <div className="flex items-center border border-[#303139] bg-[#07090e] rounded-[40px] overflow-hidden">
             <button
               onClick={() => handleZoom(0.15)}
-              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b] border-r border-[#1b2333]"
+              className="p-1.5 text-[#c9ced8] hover:text-[#f4f5f7] hover:bg-[#10141c] border-r border-[#303139] transition-all duration-[160ms] ease-out"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleZoom(-0.15)}
-              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b] border-r border-[#1b2333]"
+              className="p-1.5 text-[#c9ced8] hover:text-[#f4f5f7] hover:bg-[#10141c] border-r border-[#303139] transition-all duration-[160ms] ease-out"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetView}
-              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b]"
+              className="p-1.5 text-[#c9ced8] hover:text-[#f4f5f7] hover:bg-[#10141c] transition-all duration-[160ms] ease-out"
               title="Reset View"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -383,7 +393,7 @@ export function GraphExplorer({
                   }}
                   className="cursor-pointer group"
                 >
-                  {/* Sharp targeting ring for risk seeds or selected nodes (Un-slopped: zero bouncy animations) */}
+                  {/* Sharp targeting ring for risk seeds or selected nodes */}
                   {node.is_risk_seed && (
                     <circle
                       r="18"
@@ -397,7 +407,7 @@ export function GraphExplorer({
                     <circle
                       r="17"
                       fill="none"
-                      stroke="#ffffff"
+                      stroke="#edcd8c"
                       strokeWidth="1.5"
                     />
                   )}
@@ -413,7 +423,7 @@ export function GraphExplorer({
                   {/* Node Label Text */}
                   <text
                     y="22"
-                    fill="#94a3b8"
+                    fill="#c9ced8"
                     fontSize="10"
                     textAnchor="middle"
                     className="font-mono font-medium pointer-events-none tracking-tight"
@@ -428,69 +438,69 @@ export function GraphExplorer({
 
         {/* Node Inspector Docked Terminal Sheet */}
         {selectedNode && (
-          <div className="absolute top-0 right-0 h-full w-84 bg-[#0d121c] border-l border-[#1b2333] p-4 text-xs flex flex-col justify-between z-20 overflow-y-auto">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-[#1b2333] pb-2">
+          <div className="absolute top-0 right-0 h-full w-84 bg-[#10141c] border-l border-[#303139] p-5 text-xs flex flex-col justify-between z-20 overflow-y-auto font-sans shadow-2xl">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-[#303139] pb-3">
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-2.5 h-2.5 rounded-none"
+                    className="w-2.5 h-2.5 rounded-[2px]"
                     style={{ backgroundColor: getNodeFill(selectedNode) }}
                   />
-                  <span className="font-bold text-white uppercase text-[10px] tracking-wider font-mono">
+                  <span className="font-mono font-bold text-[#f4f5f7] uppercase text-[11px] tracking-wider">
                     {selectedNode.category.replace('_', ' ')}
                   </span>
                 </div>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="text-slate-400 hover:text-white font-mono text-sm px-1"
+                  className="text-[#c9ced8] hover:text-[#f4f5f7] font-mono text-sm px-1"
                 >
                   ✕
                 </button>
               </div>
 
               <div>
-                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Entity ID</p>
-                <p className="font-mono text-cyan-300 break-all text-xs select-all mt-0.5 bg-[#080b11] p-1.5 border border-[#1b2333]">
+                <p className="text-[10px] text-[#c9ced8] font-mono uppercase tracking-wider">Entity ID</p>
+                <p className="font-mono text-[#edcd8c] break-all text-xs select-all mt-1 bg-[#07090e] p-2 rounded-[4px] border border-[#303139]">
                   {selectedNode.id}
                 </p>
               </div>
 
               <div>
-                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Label</p>
-                <p className="font-medium text-slate-200 mt-0.5">{selectedNode.label}</p>
+                <p className="text-[10px] text-[#c9ced8] font-mono uppercase tracking-wider">Label</p>
+                <p className="font-medium text-[#f4f5f7] text-sm mt-0.5">{selectedNode.label}</p>
               </div>
 
               {selectedNode.is_risk_seed && (
-                <div className="p-2 border border-rose-900/60 bg-rose-950/20 text-rose-300">
-                  <div className="flex items-center gap-1.5 font-bold text-[11px]">
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                    <span>SANCTION / RISK SEED</span>
+                <div className="p-3 border border-[#f43f5e]/50 bg-[#101522] rounded-[4px] text-[#f43f5e]">
+                  <div className="flex items-center gap-1.5 font-bold text-xs font-mono">
+                    <ShieldAlert className="w-4 h-4 text-[#f43f5e] shrink-0" />
+                    <span>THREAT INTEL / RISK SEED</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                    Flagged in high-risk cluster. Direct interaction creates severe risk attribution.
+                  <p className="text-[11px] text-[#c9ced8] mt-1 leading-relaxed font-sans">
+                    Flagged in high-risk sanctions cluster. Direct interaction creates immediate severe risk attribution.
                   </p>
                 </div>
               )}
 
               {selectedNode.details && (
-                <div className="border border-[#1b2333] bg-[#080b11] p-2.5 space-y-1.5">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">Entity Attributes</p>
+                <div className="border border-[#303139] bg-[#07090e] p-3 rounded-[4px] space-y-2">
+                  <p className="text-[10px] text-[#edcd8c] font-bold uppercase tracking-wider font-mono">Entity Attributes</p>
                   {Object.entries(selectedNode.details).map(([k, v]) => (
-                    <div key={k} className="flex justify-between text-[11px] font-mono">
-                      <span className="text-slate-400 capitalize">{k.replace('_', ' ')}:</span>
-                      <span className="text-slate-200">{String(v)}</span>
+                    <div key={k} className="flex justify-between text-xs font-mono">
+                      <span className="text-[#c9ced8] capitalize">{k.replace('_', ' ')}:</span>
+                      <span className="text-[#f4f5f7]">{String(v)}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#1b2333]">
+            <div className="pt-4 border-t border-[#303139]">
               <button
                 onClick={() => {
                   if (onSelectNode) onSelectNode(selectedNode.id);
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-cyan-700 hover:bg-cyan-600 text-white font-semibold text-xs transition-colors border border-cyan-500/40"
+                className="btn-financial-primary w-full text-xs font-semibold py-2"
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>INVESTIGATE WALLET</span>
@@ -501,32 +511,32 @@ export function GraphExplorer({
       </div>
 
       {/* Legend Footer */}
-      <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#0d121c] border-t border-[#1b2333] text-[11px] text-slate-400">
+      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-[#10141c] border-t border-[#303139] text-xs text-[#c9ced8]">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-slate-500 uppercase text-[10px] font-bold">LEGEND:</span>
+          <span className="text-[#c9ced8] uppercase text-[10px] font-mono font-bold">LEGEND:</span>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#38bdf8]" />
-            <span>Wallet</span>
+            <span className="w-2 h-2 rounded-[2px] bg-[#38bdf8]" />
+            <span className="text-xs">Wallet</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#818cf8]" />
-            <span>Funding Source</span>
+            <span className="w-2 h-2 rounded-[2px] bg-[#ff951f]" />
+            <span className="text-xs">Liquidity Origin</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#94a3b8]" />
-            <span>Agent</span>
+            <span className="w-2 h-2 rounded-[2px] bg-[#c9ced8]" />
+            <span className="text-xs">Autonomous Agent</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#2dd4bf]" />
-            <span>Contract</span>
+            <span className="w-2 h-2 rounded-[2px] bg-[#2dd4bf]" />
+            <span className="text-xs">Smart Contract</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 bg-[#f43f5e]" />
-            <span>Risk Seed</span>
+            <span className="w-2 h-2 rounded-[2px] bg-[#f43f5e]" />
+            <span className="text-xs">Risk Seed</span>
           </div>
         </div>
 
-        <div className="text-[10px] text-slate-500 font-mono">
+        <div className="text-[11px] text-[#c9ced8] font-mono">
           TOPOLOGY: {visibleNodes.length} VERTICES • {visibleLinks.length} EDGES
         </div>
       </div>

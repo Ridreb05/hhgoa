@@ -1,46 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #080b11;
-  --foreground: #e2e8f0;
-  --surface: #0d121c;
-  --surface-subtle: #111724;
-  --border: #1b2333;
-  --border-subtle: #141b29;
-  --accent: #0ea5e9;
-  --ink-muted: #64748b;
-  --ink-dim: #475569;
+  /* Authoritative Design System Tokens: Financial */
+  --dp-color-ground: #07090e;
+  --dp-color-ground-tint: #101522;
+  --dp-color-panel: #10141c;
+  --dp-color-accent: #ff951f;
+  --dp-color-value: #edcd8c;
+  --dp-color-ink: #f4f5f7;
+  --dp-color-ink-muted: #c9ced8;
+  --dp-color-line: #303139;
+
+  --dp-typography-body-face: "Financial Plex Sans", "IBM Plex Sans", sans-serif;
+  --dp-typography-data-face: "Financial Plex Mono", "IBM Plex Mono", monospace;
+  --dp-typography-body: 16px;
+  --dp-typography-supporting: 14px;
+  --dp-typography-metadata: 13px;
+  --dp-typography-body-leading: 1.6;
+  --dp-typography-reading-leading: 1.65;
+
+  --dp-spacing-cluster-gap: 24px;
+  --dp-spacing-compact-gap: 12px;
+
+  --dp-radius-panel: 5px;
+  --dp-radius-editorial: 4px;
+  --dp-radius-control: 40px;
+
+  --dp-border-hairline: 1px;
+
+  --dp-motion-interaction: 160ms;
+  --dp-motion-easing: ease;
+
+  /* Backward compatible mappings */
+  --background: var(--dp-color-ground);
+  --foreground: var(--dp-color-ink);
+  --surface: var(--dp-color-panel);
+  --border: var(--dp-color-line);
+}
+
+@font-face {
+  font-family: "Financial Plex Sans";
+  src: local("IBM Plex Sans"), local("IBMPlexSans");
+}
+
+@font-face {
+  font-family: "Financial Plex Mono";
+  src: local("IBM Plex Mono"), local("IBMPlexMono");
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  color: var(--dp-color-ink);
+  background: var(--dp-color-ground);
+  font-family: var(--dp-typography-body-face);
+  line-height: var(--dp-typography-body-leading);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Tabular figures for data integrity */
 .tabular-nums, code, pre, .font-mono {
-  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-family: var(--dp-typography-data-face);
   font-feature-settings: "tnum" 1;
 }
 
-/* Hardened Industrial Scrollbar */
+/* Financial Control Styles */
+.btn-financial-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--dp-color-accent);
+  color: var(--dp-color-ground);
+  font-family: var(--dp-typography-body-face);
+  font-weight: 600;
+  border-radius: var(--dp-radius-control);
+  padding: 0.5rem 1.25rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  transition: all var(--dp-motion-interaction) var(--dp-motion-easing);
+  border: 1px solid transparent;
+}
+.btn-financial-primary:hover {
+  background-color: #f0830c;
+  box-shadow: 0 0 16px rgba(255, 149, 31, 0.28);
+}
+.btn-financial-primary:focus-visible {
+  outline: 2px solid var(--dp-color-accent);
+  outline-offset: 2px;
+}
+
+.btn-financial-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--dp-color-panel);
+  color: var(--dp-color-ink);
+  border: var(--dp-border-hairline) solid var(--dp-color-line);
+  font-family: var(--dp-typography-body-face);
+  font-weight: 500;
+  border-radius: var(--dp-radius-control);
+  padding: 0.5rem 1.125rem;
+  font-size: 0.8125rem;
+  transition: all var(--dp-motion-interaction) var(--dp-motion-easing);
+}
+.btn-financial-secondary:hover {
+  border-color: var(--dp-color-ink-muted);
+  background-color: #141923;
+  color: #ffffff;
+}
+.btn-financial-secondary:focus-visible {
+  outline: 2px solid var(--dp-color-accent);
+  outline-offset: 2px;
+}
+
+/* Framed Value / Product Object with thin offset outlines */
+.framed-object-container {
+  position: relative;
+}
+.framed-object-outline-2 {
+  position: absolute;
+  inset: -8px -8px 8px 8px;
+  border: 1px solid rgba(48, 49, 57, 0.5);
+  border-radius: var(--dp-radius-panel);
+  pointer-events: none;
+  z-index: 1;
+}
+.framed-object-outline-1 {
+  position: absolute;
+  inset: -4px -4px 4px 4px;
+  border: 1px solid rgba(48, 49, 57, 0.9);
+  border-radius: var(--dp-radius-panel);
+  pointer-events: none;
+  z-index: 2;
+}
+.framed-object-panel {
+  position: relative;
+  z-index: 3;
+  background: var(--dp-color-panel);
+  border: var(--dp-border-hairline) solid var(--dp-color-line);
+  border-radius: var(--dp-radius-panel);
+}
+
+/* Warm soft glow for hero and closing areas */
+.warm-light-hero {
+  position: absolute;
+  top: 50%;
+  right: 15%;
+  transform: translate(50%, -50%);
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(255, 149, 31, 0.08) 0%, rgba(237, 205, 140, 0.02) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.warm-light-closing {
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 149, 31, 0.12) 0%, rgba(16, 21, 34, 0.6) 50%, transparent 80%);
+}
+
+/* Keyboard accessibility focus rings */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--dp-color-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Ruled panels */
+.financial-panel {
+  background-color: var(--dp-color-panel);
+  border: var(--dp-border-hairline) solid var(--dp-color-line);
+  border-radius: var(--dp-radius-panel);
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #080b11;
+  background: var(--dp-color-ground);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 0;
+  background: var(--dp-color-line);
+  border-radius: var(--dp-radius-panel);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #474a56;
 }

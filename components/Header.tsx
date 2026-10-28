@@ -41,20 +41,20 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#080b11] border-b border-[#1b2333]">
+    <header className="sticky top-0 z-40 bg-[#07090e] border-b border-[#303139]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
           {/* Logo & Brand Identity */}
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded border border-[#1b2333] bg-[#0d121c] flex items-center justify-center text-sky-400">
+            <div className="w-7 h-7 rounded-[5px] border border-[#303139] bg-[#10141c] flex items-center justify-center text-[#ff951f] shadow-sm">
               <Shield className="w-4 h-4 stroke-[2.2]" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="font-mono font-bold text-slate-100 text-sm tracking-tight">
+              <span className="font-sans font-semibold text-[#f4f5f7] text-sm tracking-tight">
                 GHOSTSHIELD
               </span>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest hidden sm:inline">
-                TIGERGRAPH GSQL CORE
+              <span className="text-[10px] font-mono text-[#c9ced8] uppercase tracking-widest hidden sm:inline">
+                TIGERGRAPH GSQL ENGINE
               </span>
             </div>
           </div>
@@ -67,10 +67,10 @@ export function Header({
                 <button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`h-full px-3 text-[11px] font-mono font-medium tracking-wider flex items-center gap-1.5 transition-colors border-b-2 ${
+                  className={`h-full px-3 text-[11px] font-sans font-medium tracking-wide flex items-center gap-1.5 transition-all duration-[160ms] ease-out border-b-2 ${
                     isActive
-                      ? 'border-sky-500 text-sky-400 bg-sky-950/20'
-                      : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+                      ? 'border-[#ff951f] text-[#ff951f] bg-[#ff951f]/10'
+                      : 'border-transparent text-[#c9ced8] hover:text-[#f4f5f7] hover:bg-[#10141c]'
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -82,19 +82,19 @@ export function Header({
           {/* Telemetry Block */}
           <div className="flex items-center gap-2.5 font-mono text-[11px]">
             {/* Latency Probe */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded bg-[#0d121c] border border-[#1b2333]">
-              <span className="text-slate-500 text-[10px]">RTT</span>
-              <span className="text-sky-400 font-semibold tabular-nums">{queryLatencyMs}ms</span>
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-[5px] bg-[#10141c] border border-[#303139]">
+              <span className="text-[#c9ced8] text-[10px] uppercase">RTT</span>
+              <span className="text-[#edcd8c] font-bold tabular-nums">{queryLatencyMs}ms</span>
             </div>
 
             {/* Engine Mode Status */}
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#0d121c] border border-[#1b2333]">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-[5px] bg-[#10141c] border border-[#303139]">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  engineMode === 'tigergraph' ? 'bg-emerald-400' : 'bg-sky-400'
+                  engineMode === 'tigergraph' ? 'bg-[#34d399]' : 'bg-[#ff951f]'
                 }`}
               />
-              <span className="text-slate-200 text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-[#f4f5f7] text-[10px] font-bold uppercase tracking-wider">
                 {engineMode === 'tigergraph' ? 'TG-CLOUD' : 'DEMO'}
               </span>
             </div>
@@ -102,17 +102,17 @@ export function Header({
         </div>
 
         {/* Mobile Navigation bar */}
-        <div className="flex lg:hidden overflow-x-auto py-1 border-t border-[#1b2333] gap-1 scrollbar-none text-[11px] font-mono">
+        <div className="flex lg:hidden overflow-x-auto py-1 border-t border-[#303139] gap-1 scrollbar-none text-[11px] font-sans">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`px-2.5 py-1 whitespace-nowrap rounded ${
+                className={`px-2.5 py-1 whitespace-nowrap rounded-[40px] transition-all duration-[160ms] ease-out ${
                   isActive
-                    ? 'bg-sky-500/20 text-sky-300 font-semibold'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#ff951f] text-[#07090e] font-semibold'
+                    : 'text-[#c9ced8] hover:text-[#f4f5f7]'
                 }`}
               >
                 {tab.label}
