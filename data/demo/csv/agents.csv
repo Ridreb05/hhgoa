@@ -1,0 +1,4 @@
+id,display_name,agent_type,provenance
+AGENT_AUTONOMOUS_ARBITRAGE,ArbMaster-v3,AI_AGENT,eliza_framework
+AGENT_SYBIL_SWEEP_COORDINATOR,GhostCoordinator-0x,SCRIPTED_BOT,suspected_botnet
+AGENT_DELEGEE_SUBROUTINE,SubExecutionAgent-4B,AI_AGENT,autonolas_stack

@@ -1,0 +1,54 @@
+// ==============================================================================
+// GSQL Query A: ghostshield_dashboard_metrics
+// Calculates graph-wide summary metrics, vertex/edge totals, and volume statistics
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+DROP QUERY ghostshield_dashboard_metrics
+
+CREATE QUERY ghostshield_dashboard_metrics() FOR GRAPH GhostShieldGraph {
+    SumAccum<INT> @@total_wallets;
+    SumAccum<INT> @@total_funding_sources;
+    SumAccum<INT> @@total_agents;
+    SumAccum<INT> @@total_contracts;
+    SumAccum<INT> @@total_transfers;
+    SumAccum<DOUBLE> @@total_transfer_volume;
+    SumAccum<INT> @@risk_seed_wallets;
+    MaxAccum<INT> @@latest_transfer_timestamp;
+
+    // 1. Wallets and known-risk seed counts
+    W = SELECT s FROM Wallet:s
+        ACCUM
+            @@total_wallets += 1,
+            CASE WHEN s.is_risk_seed THEN @@risk_seed_wallets += 1 END;
+
+    // 2. Upstream funding origins
+    FS = SELECT s FROM FundingSource:s
+         ACCUM @@total_funding_sources += 1;
+
+    // 3. Autonomous decision agents
+    A = SELECT s FROM Agent:s
+        ACCUM @@total_agents += 1;
+
+    // 4. Smart contract protocols
+    SC = SELECT s FROM SmartContract:s
+         ACCUM @@total_contracts += 1;
+
+    // 5. Aggregate transfer volume and temporal bounds
+    T = SELECT tgt FROM Wallet:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+        ACCUM
+            @@total_transfers += 1,
+            @@total_transfer_volume += e.amount,
+            @@latest_transfer_timestamp += e.event_timestamp;
+
+    PRINT @@total_wallets AS total_wallets,
+          @@total_funding_sources AS total_funding_sources,
+          @@total_agents AS total_agents,
+          @@total_contracts AS total_contracts,
+          @@total_transfers AS total_transfers,
+          @@total_transfer_volume AS total_transfer_volume,
+          @@risk_seed_wallets AS risk_seed_wallets,
+          @@latest_transfer_timestamp AS latest_transfer_timestamp;
+}
+
+INSTALL QUERY ghostshield_dashboard_metrics

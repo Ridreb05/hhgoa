@@ -1,0 +1,10 @@
+from,to,amount,asset,event_timestamp,tx_id
+0x71c...sus1,0x82d...sus2,10.0,ETH,1700000100,0xaaa01...tx1
+0x82d...sus2,0x93e...sus3,9.9,ETH,1700000280,0xaaa02...tx2
+0x93e...sus3,0x71c...sus1,9.8,ETH,1700000440,0xaaa03...tx3
+0x11a...norm1,0x22b...norm2,1.5,ETH,1695000000,0xbbb01...tx4
+0x22b...norm2,0xbbb...clean_lp,1.2,ETH,1695086400,0xbbb02...tx5
+0x44d...airdrop1,0xbbb...clean_lp,0.5,ETH,1699050000,0xccc01...tx6
+0x55e...airdrop2,0xbbb...clean_lp,0.5,ETH,1699050500,0xccc02...tx7
+0x66f...target4,0x999...seed_exploit,45.0,ETH,1686000000,0xddd01...tx8
+0x33c...ambig1,0xbbb...clean_lp,2.0,ETH,1698050000,0xeee01...tx9

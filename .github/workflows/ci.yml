@@ -1,0 +1,35 @@
+name: GhostShield CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Vitest Unit & Integration Tests
+        run: npm run test
+
+      - name: Run Ground Truth Evaluation Benchmark
+        run: npm run evaluate
+
+      - name: Build Next.js Production Bundle
+        run: npm run build
+        env:
+          GHOSTSHIELD_ENGINE_MODE: demo

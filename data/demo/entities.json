@@ -1,0 +1,133 @@
+{
+  "scenarios": [
+    {
+      "id": "scenario-a",
+      "name": "Scenario A: Rapid Circular Transfer with Mixer Funding",
+      "category": "SUSPICIOUS_CYCLE",
+      "description": "Three wallets execute a rapid directed circular flow (W_SUS_1 -> W_SUS_2 -> W_SUS_3 -> W_SUS_1) in under 6 minutes with 98% volume conservation, corroborated by common funding from Tornado Cash mixer.",
+      "target_wallet": "0x71c...sus1",
+      "counterparty": "0x82d...sus2",
+      "expected_classification": "REJECT",
+      "expected_min_score": 75,
+      "expected_rules": [
+        "TEMPORAL_CIRCULAR_TRANSFER",
+        "HIGH_VOLUME_RETENTION",
+        "SHARED_HIGH_RISK_FUNDING"
+      ]
+    },
+    {
+      "id": "scenario-b",
+      "name": "Scenario B: Ordinary Benign Peer Transfer",
+      "category": "NORMAL_TRANSFER",
+      "description": "Standard peer-to-peer transfer between regular retail wallets funded via Coinbase with clean transaction history and no circular paths.",
+      "target_wallet": "0x11a...norm1",
+      "counterparty": "0x22b...norm2",
+      "expected_classification": "ALLOW",
+      "expected_max_score": 25,
+      "expected_rules": []
+    },
+    {
+      "id": "scenario-c",
+      "name": "Scenario C: Shared Exchange Funding Without Cycles",
+      "category": "COMMON_FUNDING_ONLY",
+      "description": "Multiple wallets independently funded from Binance Hot Wallet participating in normal transfers without circular routing or mixer interaction.",
+      "target_wallet": "0x44d...airdrop1",
+      "counterparty": "0x55e...airdrop2",
+      "expected_classification": "ALLOW",
+      "expected_min_score": 15,
+      "expected_max_score": 34,
+      "expected_rules": ["SHARED_COMMON_FUNDING"]
+    },
+    {
+      "id": "scenario-d",
+      "name": "Scenario D: Direct Exposure to Flagged Risk Seed",
+      "category": "KNOWN_RISK_CONNECTION",
+      "description": "Direct fund movement to or from an entity tagged as a verified exploit / sanctions risk seed with traceable 1-hop path.",
+      "target_wallet": "0x66f...target4",
+      "counterparty": "0x999...seed_exploit",
+      "expected_classification": "REJECT",
+      "expected_min_score": 65,
+      "expected_rules": ["DIRECT_RISK_SEED_EXPOSURE"]
+    },
+    {
+      "id": "scenario-e",
+      "name": "Scenario E: Ambiguous Single Signal (Isolated Agent)",
+      "category": "AMBIGUOUS_ACTIVITY",
+      "description": "A single autonomous trading agent controls the wallet, but there are no cycles, no mixer funds, and no known risk seeds.",
+      "target_wallet": "0x33c...ambig1",
+      "counterparty": "0x77g...pool_uniswap",
+      "expected_classification": "ALLOW",
+      "expected_min_score": 10,
+      "expected_max_score": 30,
+      "expected_rules": ["AUTONOMOUS_AGENT_CONTROLLED"]
+    }
+  ],
+  "vertices": {
+    "wallets": [
+      { "id": "0x71c...sus1", "network": "ethereum", "label": "Sybil Alpha (Suspect)", "creation_time": 1700000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x82d...sus2", "network": "ethereum", "label": "Sybil Beta (Suspect)", "creation_time": 1700000050, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x93e...sus3", "network": "ethereum", "label": "Sybil Gamma (Suspect)", "creation_time": 1700000100, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x11a...norm1", "network": "ethereum", "label": "Retail Trader Alice", "creation_time": 1690000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x22b...norm2", "network": "ethereum", "label": "Retail Trader Bob", "creation_time": 1691000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x33c...ambig1", "network": "ethereum", "label": "Autonomous Bot Wallet", "creation_time": 1698000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x44d...airdrop1", "network": "ethereum", "label": "Airdrop Claimer 1", "creation_time": 1699000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x55e...airdrop2", "network": "ethereum", "label": "Airdrop Claimer 2", "creation_time": 1699000100, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x66f...target4", "network": "ethereum", "label": "Compromised Treasury", "creation_time": 1685000000, "provenance": "synthetic_seed", "is_risk_seed": false },
+      { "id": "0x999...seed_exploit", "network": "ethereum", "label": "Known Exploit Seed", "creation_time": 1670000000, "provenance": "ofac_sanctions_test", "is_risk_seed": true },
+      { "id": "0xaaa...seed_laundering", "network": "polygon", "label": "Known Mixer Drainer", "creation_time": 1680000000, "provenance": "threat_intel_seed", "is_risk_seed": true },
+      { "id": "0xbbb...clean_lp", "network": "ethereum", "label": "Legitimate Liquidity Provider", "creation_time": 1692000000, "provenance": "synthetic_seed", "is_risk_seed": false }
+    ],
+    "funding_sources": [
+      { "id": "FS_TORNADO_CASH_01", "category": "MIXER", "label": "Tornado Cash Pool 10 ETH", "provenance": "sanctioned_mixer_protocol" },
+      { "id": "FS_BINANCE_HOTWALLET", "category": "EXCHANGE", "label": "Binance Hot Wallet 14", "provenance": "cex_custody" },
+      { "id": "FS_COINBASE_PAYROLL", "category": "EXCHANGE", "label": "Coinbase Prime Custody", "provenance": "institutional_custody" },
+      { "id": "FS_HOP_BRIDGE_POLYGON", "category": "BRIDGE", "label": "Hop Protocol L2 Bridge", "provenance": "cross_chain_liquidity" },
+      { "id": "FS_DAO_TREASURY_SAFE", "category": "TREASURY", "label": "Uniswap Community Treasury Safe", "provenance": "governance_multisig" }
+    ],
+    "agents": [
+      { "id": "AGENT_AUTONOMOUS_ARBITRAGE", "display_name": "ArbMaster-v3", "agent_type": "AI_AGENT", "provenance": "eliza_framework" },
+      { "id": "AGENT_SYBIL_SWEEP_COORDINATOR", "display_name": "GhostCoordinator-0x", "agent_type": "SCRIPTED_BOT", "provenance": "suspected_botnet" },
+      { "id": "AGENT_DELEGEE_SUBROUTINE", "display_name": "SubExecutionAgent-4B", "agent_type": "AI_AGENT", "provenance": "autonolas_stack" }
+    ],
+    "smart_contracts": [
+      { "id": "0x7a2...uniswap_router", "network": "ethereum", "protocol": "Uniswap V2", "category": "DEX_ROUTER" },
+      { "id": "0x88e...aave_pool", "network": "ethereum", "protocol": "Aave V3", "category": "LENDING" },
+      { "id": "0x334...curve_3pool", "network": "ethereum", "protocol": "Curve Finance", "category": "STABLE_SWAP" }
+    ]
+  },
+  "edges": {
+    "transfers": [
+      { "from": "0x71c...sus1", "to": "0x82d...sus2", "amount": 10.0, "asset": "ETH", "event_timestamp": 1700000100, "tx_id": "0xaaa01...tx1" },
+      { "from": "0x82d...sus2", "to": "0x93e...sus3", "amount": 9.9, "asset": "ETH", "event_timestamp": 1700000280, "tx_id": "0xaaa02...tx2" },
+      { "from": "0x93e...sus3", "to": "0x71c...sus1", "amount": 9.8, "asset": "ETH", "event_timestamp": 1700000440, "tx_id": "0xaaa03...tx3" },
+      { "from": "0x11a...norm1", "to": "0x22b...norm2", "amount": 1.5, "asset": "ETH", "event_timestamp": 1695000000, "tx_id": "0xbbb01...tx4" },
+      { "from": "0x22b...norm2", "to": "0xbbb...clean_lp", "amount": 1.2, "asset": "ETH", "event_timestamp": 1695086400, "tx_id": "0xbbb02...tx5" },
+      { "from": "0x44d...airdrop1", "to": "0xbbb...clean_lp", "amount": 0.5, "asset": "ETH", "event_timestamp": 1699050000, "tx_id": "0xccc01...tx6" },
+      { "from": "0x55e...airdrop2", "to": "0xbbb...clean_lp", "amount": 0.5, "asset": "ETH", "event_timestamp": 1699050500, "tx_id": "0xccc02...tx7" },
+      { "from": "0x66f...target4", "to": "0x999...seed_exploit", "amount": 45.0, "asset": "ETH", "event_timestamp": 1686000000, "tx_id": "0xddd01...tx8" },
+      { "from": "0x33c...ambig1", "to": "0xbbb...clean_lp", "amount": 2.0, "asset": "ETH", "event_timestamp": 1698050000, "tx_id": "0xeee01...tx9" }
+    ],
+    "funding_edges": [
+      { "from": "FS_TORNADO_CASH_01", "to": "0x71c...sus1", "amount": 10.0, "funding_timestamp": 1700000020, "event_id": "FND_TC_01" },
+      { "from": "FS_TORNADO_CASH_01", "to": "0x82d...sus2", "amount": 5.0, "funding_timestamp": 1700000040, "event_id": "FND_TC_02" },
+      { "from": "FS_COINBASE_PAYROLL", "to": "0x11a...norm1", "amount": 5.0, "funding_timestamp": 1690000050, "event_id": "FND_CB_01" },
+      { "from": "FS_COINBASE_PAYROLL", "to": "0x22b...norm2", "amount": 3.0, "funding_timestamp": 1691000050, "event_id": "FND_CB_02" },
+      { "from": "FS_BINANCE_HOTWALLET", "to": "0x44d...airdrop1", "amount": 1.0, "funding_timestamp": 1699000050, "event_id": "FND_BN_01" },
+      { "from": "FS_BINANCE_HOTWALLET", "to": "0x55e...airdrop2", "amount": 1.0, "funding_timestamp": 1699000150, "event_id": "FND_BN_02" },
+      { "from": "FS_DAO_TREASURY_SAFE", "to": "0x66f...target4", "amount": 100.0, "funding_timestamp": 1685000050, "event_id": "FND_TR_01" }
+    ],
+    "control_edges": [
+      { "from": "AGENT_SYBIL_SWEEP_COORDINATOR", "to": "0x71c...sus1", "provenance": "cryptographic_delegation_signature", "recorded_at": 1700000010 },
+      { "from": "AGENT_SYBIL_SWEEP_COORDINATOR", "to": "0x82d...sus2", "provenance": "cryptographic_delegation_signature", "recorded_at": 1700000015 },
+      { "from": "AGENT_AUTONOMOUS_ARBITRAGE", "to": "0x33c...ambig1", "provenance": "erc4337_session_key", "recorded_at": 1698000010 }
+    ],
+    "delegation_edges": [
+      { "from": "AGENT_SYBIL_SWEEP_COORDINATOR", "to": "AGENT_DELEGEE_SUBROUTINE", "delegation_type": "SUB_ROUTINE_EXECUTION", "recorded_at": 1700000005 }
+    ],
+    "interactions": [
+      { "from": "0x71c...sus1", "to": "0x7a2...uniswap_router", "interaction_timestamp": 1700000080, "tx_id": "0xix01", "interaction_type": "SWAP_EXACT_TOKENS" },
+      { "from": "0x33c...ambig1", "to": "0x88e...aave_pool", "interaction_timestamp": 1698020000, "tx_id": "0xix02", "interaction_type": "FLASH_LOAN" },
+      { "from": "0x11a...norm1", "to": "0x334...curve_3pool", "interaction_timestamp": 1695010000, "tx_id": "0xix03", "interaction_type": "ADD_LIQUIDITY" }
+    ]
+  }
+}

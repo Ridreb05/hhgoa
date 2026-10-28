@@ -1,0 +1,140 @@
+// ==============================================================================
+// GSQL Query D: ghostshield_risk_evidence
+// Aggregates multi-modal graph evidence for candidate transactions or target wallets
+// Computes metrics: cycle participation, shared funding overlap, seed proximity,
+// agent control chains, and amount repetition.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+DROP QUERY ghostshield_risk_evidence
+
+CREATE QUERY ghostshield_risk_evidence(
+    VERTEX<Wallet> target_wallet,
+    STRING counterparty_id = "",
+    DOUBLE proposed_amount = 0.0,
+    INT time_window_seconds = 600
+) FOR GRAPH GhostShieldGraph {
+    SumAccum<INT> @@total_neighbor_wallets;
+    SumAccum<INT> @@outgoing_tx_count;
+    SumAccum<INT> @@incoming_tx_count;
+    SumAccum<DOUBLE> @@total_transferred_volume;
+    SumAccum<INT> @@shared_funding_sources_count;
+    SumAccum<INT> @@risk_seed_connections_count;
+    SumAccum<INT> @@controlling_agents_count;
+    SumAccum<INT> @@delegated_agents_count;
+    SumAccum<INT> @@detected_cycle_count;
+
+    SetAccum<STRING> @@target_funding_sources;
+    SetAccum<STRING> @@counterparty_funding_sources;
+    SetAccum<STRING> @@common_funding_sources;
+    SetAccum<STRING> @@connected_risk_seeds;
+    SetAccum<STRING> @@cycle_participant_wallets;
+    ListAccum<STRING> @@evidence_flags;
+
+    OrAccum @is_risk_seed;
+    Start = { target_wallet };
+
+    // 1. Direct Transfer Activity & Neighbor Counts
+    OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+            ACCUM 
+                @@outgoing_tx_count += 1,
+                @@total_transferred_volume += e.amount,
+                @@total_neighbor_wallets += 1;
+
+    InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO:e)-> Wallet:src
+           ACCUM 
+               @@incoming_tx_count += 1,
+               @@total_transferred_volume += e.amount,
+               @@total_neighbor_wallets += 1;
+
+    // 2. Identify Target Wallet Upstream Funding Sources
+    TargetFS = SELECT fs FROM Start:tgt -(FUNDED_BY:e)-> FundingSource:fs
+               ACCUM @@target_funding_sources += fs.id;
+
+    // 3. If counterparty specified, inspect counterparty funding sources and calculate overlap
+    IF counterparty_id != "" THEN
+        CP = { Wallet.* };
+        CounterpartySet = SELECT c FROM CP:c WHERE c.id == counterparty_id;
+        
+        CP_FS = SELECT fs FROM CounterpartySet:c -(FUNDED_BY:e)-> FundingSource:fs
+                ACCUM @@counterparty_funding_sources += fs.id;
+        
+        // Intersect funding sets
+        FOREACH fs_id IN @@target_funding_sources DO
+            IF @@counterparty_funding_sources.contains(fs_id) THEN
+                @@common_funding_sources += fs_id;
+            END;
+        END;
+        
+        @@shared_funding_sources_count = @@common_funding_sources.size();
+        IF @@shared_funding_sources_count > 0 THEN
+            @@evidence_flags += "COMMON_FUNDING_SOURCE_DETECTED";
+        END;
+    END;
+
+    // 4. Proximity to Known Risk Seeds (1-hop & 2-hop)
+    DirectSeeds = SELECT w FROM Start:src -(TRANSFERRED_TO|REVERSE_TRANSFERRED_TO:e)-> Wallet:w
+                  WHERE w.is_risk_seed
+                  ACCUM 
+                      @@connected_risk_seeds += w.id,
+                      @@risk_seed_connections_count += 1;
+
+    IF @@risk_seed_connections_count > 0 THEN
+        @@evidence_flags += "DIRECT_RISK_SEED_EXPOSURE";
+    END;
+
+    // 5. Agent Control & Delegation Chains
+    Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY:e)-> Agent:a
+             ACCUM @@controlling_agents_count += 1;
+
+    Delegated = SELECT a2 FROM Agents:a1 -(DELEGATES_TO:e)-> Agent:a2
+                ACCUM @@delegated_agents_count += 1;
+
+    IF @@controlling_agents_count > 0 THEN
+        @@evidence_flags += "AUTONOMOUS_AGENT_CONTROLLED";
+    END;
+    IF @@delegated_agents_count > 0 THEN
+        @@evidence_flags += "MULTI_TIER_AGENT_DELEGATION";
+    END;
+
+    // 6. Rapid Directed 3-Cycle Participation check
+    // Does target_wallet participate in w1 -> w2 -> w3 -> w1 within time_window_seconds?
+    C = SELECT w3 FROM Start:w1 -(TRANSFERRED_TO:e1)-> Wallet:w2,
+                       Wallet:w2_alias -(TRANSFERRED_TO:e2)-> Wallet:w3,
+                       Wallet:w3_alias -(TRANSFERRED_TO:e3)-> Start:w1_alias
+        WHERE w2 == w2_alias 
+          AND w3 == w3_alias 
+          AND w1 == w1_alias
+          AND w1.id != w2.id AND w2.id != w3.id AND w1.id != w3.id
+        ACCUM
+            INT min_t = min(e1.event_timestamp, min(e2.event_timestamp, e3.event_timestamp)),
+            INT max_t = max(e1.event_timestamp, max(e2.event_timestamp, e3.event_timestamp)),
+            INT dur = max_t - min_t,
+            IF dur <= time_window_seconds THEN
+                @@detected_cycle_count += 1,
+                @@cycle_participant_wallets += w2.id,
+                @@cycle_participant_wallets += w3.id
+            END;
+
+    IF @@detected_cycle_count > 0 THEN
+        @@evidence_flags += "RAPID_TEMPORAL_CYCLE_DETECTED";
+    END;
+
+    PRINT target_wallet.id AS target_wallet_id,
+          counterparty_id AS counterparty_id,
+          @@total_neighbor_wallets AS neighbor_wallets_count,
+          @@outgoing_tx_count AS outgoing_tx_count,
+          @@incoming_tx_count AS incoming_tx_count,
+          @@total_transferred_volume AS total_transferred_volume,
+          @@shared_funding_sources_count AS shared_funding_count,
+          @@common_funding_sources AS common_funding_sources,
+          @@risk_seed_connections_count AS risk_seed_connections_count,
+          @@connected_risk_seeds AS connected_risk_seeds,
+          @@controlling_agents_count AS controlling_agents_count,
+          @@delegated_agents_count AS delegated_agents_count,
+          @@detected_cycle_count AS detected_cycle_count,
+          @@cycle_participant_wallets AS cycle_participant_wallets,
+          @@evidence_flags AS evidence_flags;
+}
+
+INSTALL QUERY ghostshield_risk_evidence

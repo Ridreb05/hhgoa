@@ -1,0 +1,113 @@
+// ==============================================================================
+// GHOSTSHIELD: TIGERGRAPH SCHEMA DEFINITION
+// Heterogeneous Graph Model for Blockchain Transaction Risk & Sybil Detection
+// Compatible with TigerGraph 3.x and 4.x
+// ==============================================================================
+
+USE GLOBAL
+
+// ------------------------------------------------------------------------------
+// Vertex Definitions
+// ------------------------------------------------------------------------------
+
+// 1. Wallet: Cryptographic keypairs / accounts on blockchain networks
+CREATE VERTEX Wallet (
+    PRIMARY_ID id STRING,
+    network STRING,
+    label STRING,
+    creation_time INT,
+    provenance STRING,
+    is_risk_seed BOOL
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// 2. FundingSource: Upstream liquidity origins (mixers, CEX hot wallets, bridges, treasuries)
+CREATE VERTEX FundingSource (
+    PRIMARY_ID id STRING,
+    category STRING,
+    label STRING,
+    provenance STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// 3. Agent: Autonomous off-chain / on-chain AI or algorithmic decision agents
+CREATE VERTEX Agent (
+    PRIMARY_ID id STRING,
+    display_name STRING,
+    agent_type STRING,
+    provenance STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// 4. SmartContract: On-chain protocols, liquidity pools, routers, tokens
+CREATE VERTEX SmartContract (
+    PRIMARY_ID id STRING,
+    network STRING,
+    protocol STRING,
+    category STRING
+) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+
+// ------------------------------------------------------------------------------
+// Edge Definitions
+// ------------------------------------------------------------------------------
+
+// Peer-to-peer asset transfers between wallets
+CREATE DIRECTED EDGE TRANSFERRED_TO (
+    FROM Wallet, 
+    TO Wallet, 
+    amount DOUBLE, 
+    asset STRING, 
+    event_timestamp INT, 
+    tx_id STRING
+) WITH REVERSE_EDGE="REVERSE_TRANSFERRED_TO";
+
+// Upstream funding events into wallets
+CREATE DIRECTED EDGE FUNDED (
+    FROM FundingSource, 
+    TO Wallet, 
+    funding_timestamp INT, 
+    amount DOUBLE, 
+    event_id STRING
+) WITH REVERSE_EDGE="FUNDED_BY";
+
+// Off-chain or cryptographic authority exerted by an agent over a wallet
+CREATE DIRECTED EDGE CONTROLS (
+    FROM Agent, 
+    TO Wallet, 
+    provenance STRING, 
+    recorded_at INT
+) WITH REVERSE_EDGE="CONTROLLED_BY";
+
+// Multi-tier agent delegation hierarchies
+CREATE DIRECTED EDGE DELEGATES_TO (
+    FROM Agent, 
+    TO Agent, 
+    delegation_type STRING, 
+    recorded_at INT
+) WITH REVERSE_EDGE="DELEGATED_FROM";
+
+// Protocol interactions executed by wallets
+CREATE DIRECTED EDGE INTERACTS_WITH (
+    FROM Wallet, 
+    TO SmartContract, 
+    interaction_timestamp INT, 
+    tx_id STRING, 
+    interaction_type STRING
+) WITH REVERSE_EDGE="INTERACTED_BY";
+
+// ------------------------------------------------------------------------------
+// Graph Definition
+// ------------------------------------------------------------------------------
+CREATE GRAPH GhostShieldGraph (
+    Wallet,
+    FundingSource,
+    Agent,
+    SmartContract,
+    TRANSFERRED_TO,
+    REVERSE_TRANSFERRED_TO,
+    FUNDED,
+    FUNDED_BY,
+    CONTROLS,
+    CONTROLLED_BY,
+    DELEGATES_TO,
+    DELEGATED_FROM,
+    INTERACTS_WITH,
+    INTERACTED_BY
+);

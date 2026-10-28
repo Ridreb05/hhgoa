@@ -1,0 +1,13 @@
+id,network,label,creation_time,provenance,is_risk_seed
+0x71c...sus1,ethereum,Sybil Alpha (Suspect),1700000000,synthetic_seed,false
+0x82d...sus2,ethereum,Sybil Beta (Suspect),1700000050,synthetic_seed,false
+0x93e...sus3,ethereum,Sybil Gamma (Suspect),1700000100,synthetic_seed,false
+0x11a...norm1,ethereum,Retail Trader Alice,1690000000,synthetic_seed,false
+0x22b...norm2,ethereum,Retail Trader Bob,1691000000,synthetic_seed,false
+0x33c...ambig1,ethereum,Autonomous Bot Wallet,1698000000,synthetic_seed,false
+0x44d...airdrop1,ethereum,Airdrop Claimer 1,1699000000,synthetic_seed,false
+0x55e...airdrop2,ethereum,Airdrop Claimer 2,1699000100,synthetic_seed,false
+0x66f...target4,ethereum,Compromised Treasury,1685000000,synthetic_seed,false
+0x999...seed_exploit,ethereum,Known Exploit Seed,1670000000,ofac_sanctions_test,true
+0xaaa...seed_laundering,polygon,Known Mixer Drainer,1680000000,threat_intel_seed,true
+0xbbb...clean_lp,ethereum,Legitimate Liquidity Provider,1692000000,synthetic_seed,false

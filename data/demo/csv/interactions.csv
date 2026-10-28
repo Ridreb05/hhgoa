@@ -1,0 +1,4 @@
+from,to,interaction_timestamp,tx_id,interaction_type
+0x71c...sus1,0x7a2...uniswap_router,1700000080,0xix01,SWAP_EXACT_TOKENS
+0x33c...ambig1,0x88e...aave_pool,1698020000,0xix02,FLASH_LOAN
+0x11a...norm1,0x334...curve_3pool,1695010000,0xix03,ADD_LIQUIDITY

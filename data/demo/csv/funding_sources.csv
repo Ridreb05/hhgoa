@@ -1,0 +1,6 @@
+id,category,label,provenance
+FS_TORNADO_CASH_01,MIXER,Tornado Cash Pool 10 ETH,sanctioned_mixer_protocol
+FS_BINANCE_HOTWALLET,EXCHANGE,Binance Hot Wallet 14,cex_custody
+FS_COINBASE_PAYROLL,EXCHANGE,Coinbase Prime Custody,institutional_custody
+FS_HOP_BRIDGE_POLYGON,BRIDGE,Hop Protocol L2 Bridge,cross_chain_liquidity
+FS_DAO_TREASURY_SAFE,TREASURY,Uniswap Community Treasury Safe,governance_multisig

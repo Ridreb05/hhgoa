@@ -1,0 +1,4 @@
+id,network,protocol,category
+0x7a2...uniswap_router,ethereum,Uniswap V2,DEX_ROUTER
+0x88e...aave_pool,ethereum,Aave V3,LENDING
+0x334...curve_3pool,ethereum,Curve Finance,STABLE_SWAP
