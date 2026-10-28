@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGraphProvider } from '@/lib/graph/provider';
 import { defaultRiskEngine } from '@/lib/risk/engine';
+import { defaultHistoryStore } from '@/lib/history/store';
 import { EngineMode } from '@/lib/graph/types';
 
 export async function GET(req: NextRequest) {
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
     const cycleRes = await provider.detectCycles(600, 4);
 
     const assessment = defaultRiskEngine.evaluate(evidence, cycleRes.cycles);
+    defaultHistoryStore.add(assessment);
 
     return NextResponse.json({
       investigation,

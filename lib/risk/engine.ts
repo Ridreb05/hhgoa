@@ -42,6 +42,20 @@ export class RiskEngine {
     this.config = { ...DEFAULT_RISK_CONFIG, ...config };
   }
 
+  public getConfig(): RiskPolicyConfig {
+    return { ...this.config };
+  }
+
+  public updateConfig(newConfig: Partial<RiskPolicyConfig>): RiskPolicyConfig {
+    this.config = { ...this.config, ...newConfig };
+    return this.getConfig();
+  }
+
+  public resetConfig(): RiskPolicyConfig {
+    this.config = { ...DEFAULT_RISK_CONFIG };
+    return this.getConfig();
+  }
+
   public evaluate(
     evidence: RiskEvidence,
     cycles: CycleRecord[] = [],

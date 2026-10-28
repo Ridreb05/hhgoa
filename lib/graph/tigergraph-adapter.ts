@@ -268,6 +268,61 @@ export class TigerGraphAdapter implements GraphProvider {
     };
   }
 
+  public async getSybilClusters(minClusterSize: number = 2): Promise<import('./types').SybilClusterResult> {
+    const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_sybil_clusters', {
+      min_cluster_size: minClusterSize,
+      result_limit: 20,
+    });
+    const rawClusters = results?.[0]?.sybil_clusters || [];
+    const clusters: import('./types').SybilClusterRecord[] = rawClusters.map((c: any) => ({
+      root_entity_id: c.root_entity_id,
+      root_type: c.root_type,
+      root_label: c.root_label,
+      category: c.category,
+      member_count: c.member_count,
+      member_wallets:
+        typeof c.member_wallets === 'string'
+          ? c.member_wallets.split(',').filter(Boolean)
+          : c.member_wallets || [],
+      total_cluster_volume: c.total_cluster_volume || 0,
+      risk_level: c.risk_level || 'MEDIUM',
+    }));
+    return {
+      engine_mode: 'tigergraph',
+      clusters_identified: clusters.length,
+      clusters,
+      query_latency_ms: latencyMs,
+    };
+  }
+
+  public async findPath(
+    sourceWalletId: string,
+    targetWalletId: string,
+    maxHops: number = 4
+  ): Promise<import('./types').PathFindResult> {
+    const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_path_find', {
+      source_wallet: sourceWalletId,
+      target_wallet: targetWalletId,
+      max_hops: maxHops,
+    });
+    const pathsData = results?.[0]?.paths || [];
+    const paths: import('./types').CompletePathRecord[] = pathsData.map((p: any) => ({
+      total_hops: p.total_hops,
+      total_volume: p.total_volume,
+      duration_seconds: p.duration_seconds,
+      path_string: p.path_string,
+      hops: p.hops || [],
+    }));
+    return {
+      engine_mode: 'tigergraph',
+      source_wallet_id: sourceWalletId,
+      target_wallet_id: targetWalletId,
+      paths_found: paths.length,
+      paths,
+      query_latency_ms: latencyMs,
+    };
+  }
+
   public async checkHealth(): Promise<ProviderHealth> {
     if (!this.isConfigured()) {
       return {

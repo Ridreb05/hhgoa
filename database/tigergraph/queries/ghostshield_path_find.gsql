@@ -1,0 +1,82 @@
+// ==============================================================================
+// GSQL Query F: ghostshield_path_find
+// Bounded multi-hop path reconstruction between two arbitrary wallet entities.
+// Reconstructs step-by-step transaction breadcrumbs with timestamps and amounts.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+DROP QUERY ghostshield_path_find
+
+CREATE QUERY ghostshield_path_find(
+    VERTEX<Wallet> source_wallet,
+    VERTEX<Wallet> target_wallet,
+    INT max_hops = 4
+) FOR GRAPH GhostShieldGraph {
+    TYPEDEF TUPLE<
+        INT hop_index,
+        STRING from_id,
+        STRING to_id,
+        DOUBLE amount,
+        STRING asset,
+        INT event_timestamp,
+        STRING tx_id
+    > PathHop;
+
+    TYPEDEF TUPLE<
+        INT total_hops,
+        DOUBLE total_volume,
+        INT duration_seconds,
+        STRING path_string,
+        LIST<PathHop> hops
+    > CompletePath;
+
+    ListAccum<CompletePath> @@discovered_paths;
+    Start = { source_wallet };
+
+    // 1-Hop direct path check
+    Hop1 = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+           WHERE tgt == target_wallet
+           ACCUM
+               ListAccum<PathHop> l_hops,
+               l_hops += PathHop(1, src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id),
+               @@discovered_paths += CompletePath(1, e.amount, 0, src.id + " -> " + tgt.id, l_hops);
+
+    // 2-Hop path check
+    IF @@discovered_paths.size() == 0 AND max_hops >= 2 THEN
+        Hop2 = SELECT w2 FROM Start:w0 -(TRANSFERRED_TO:e1)-> Wallet:w1,
+                              Wallet:w1_alias -(TRANSFERRED_TO:e2)-> Wallet:w2
+               WHERE w1 == w1_alias AND w2 == target_wallet AND w1 != target_wallet
+               ACCUM
+                   ListAccum<PathHop> l_hops,
+                   l_hops += PathHop(1, w0.id, w1.id, e1.amount, e1.asset, e1.event_timestamp, e1.tx_id),
+                   l_hops += PathHop(2, w1.id, w2.id, e2.amount, e2.asset, e2.event_timestamp, e2.tx_id),
+                   INT dur = abs(e2.event_timestamp - e1.event_timestamp),
+                   DOUBLE vol = e1.amount + e2.amount,
+                   @@discovered_paths += CompletePath(2, vol, dur, w0.id + " -> " + w1.id + " -> " + w2.id, l_hops);
+    END;
+
+    // 3-Hop path check
+    IF @@discovered_paths.size() == 0 AND max_hops >= 3 THEN
+        Hop3 = SELECT w3 FROM Start:w0 -(TRANSFERRED_TO:e1)-> Wallet:w1,
+                              Wallet:w1_alias -(TRANSFERRED_TO:e2)-> Wallet:w2,
+                              Wallet:w2_alias -(TRANSFERRED_TO:e3)-> Wallet:w3
+               WHERE w1 == w1_alias AND w2 == w2_alias AND w3 == target_wallet
+                 AND w1 != target_wallet AND w2 != target_wallet
+               ACCUM
+                   ListAccum<PathHop> l_hops,
+                   l_hops += PathHop(1, w0.id, w1.id, e1.amount, e1.asset, e1.event_timestamp, e1.tx_id),
+                   l_hops += PathHop(2, w1.id, w2.id, e2.amount, e2.asset, e2.event_timestamp, e2.tx_id),
+                   l_hops += PathHop(3, w2.id, w3.id, e3.amount, e3.asset, e3.event_timestamp, e3.tx_id),
+                   INT min_t = min(e1.event_timestamp, min(e2.event_timestamp, e3.event_timestamp)),
+                   INT max_t = max(e1.event_timestamp, max(e2.event_timestamp, e3.event_timestamp)),
+                   DOUBLE vol = e1.amount + e2.amount + e3.amount,
+                   @@discovered_paths += CompletePath(3, vol, max_t - min_t, w0.id + " -> " + w1.id + " -> " + w2.id + " -> " + w3.id, l_hops);
+    END;
+
+    PRINT source_wallet.id AS source_wallet_id,
+          target_wallet.id AS target_wallet_id,
+          @@discovered_paths AS paths,
+          @@discovered_paths.size() AS paths_found;
+}
+
+INSTALL QUERY ghostshield_path_find

@@ -10,6 +10,10 @@ import {
   Cpu,
   Clock,
   Sparkles,
+  Route,
+  Users,
+  Sliders,
+  FileText,
 } from 'lucide-react';
 import { EngineMode } from '@/lib/graph/types';
 
@@ -28,10 +32,14 @@ export function Header({
 }: HeaderProps) {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Layers },
-    { id: 'graph', label: 'Graph Explorer', icon: Layers },
-    { id: 'investigate', label: 'Investigations', icon: Search },
-    { id: 'simulator', label: 'Transaction Simulator', icon: Play },
-    { id: 'status', label: 'System Status', icon: Activity },
+    { id: 'graph', label: 'Graph', icon: Layers },
+    { id: 'investigate', label: 'Investigate', icon: Search },
+    { id: 'simulator', label: 'Simulator', icon: Play },
+    { id: 'path', label: 'Path Tracer', icon: Route },
+    { id: 'clusters', label: 'Sybil Clusters', icon: Users },
+    { id: 'policy', label: 'Policy Engine', icon: Sliders },
+    { id: 'history', label: 'Audit Logs', icon: FileText },
+    { id: 'status', label: 'Status', icon: Activity },
   ];
 
   return (

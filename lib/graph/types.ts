@@ -262,6 +262,57 @@ export interface GraphTopology {
 }
 
 // ------------------------------------------------------------------------------
+// Sybil Clustering & Coordinated Groups
+// ------------------------------------------------------------------------------
+export interface SybilClusterRecord {
+  root_entity_id: string;
+  root_type: 'FundingSource' | 'Agent';
+  root_label: string;
+  category: string;
+  member_count: number;
+  member_wallets: string[];
+  total_cluster_volume: number;
+  risk_level: 'CRITICAL' | 'HIGH_COORDINATION' | 'MEDIUM' | 'LOW';
+}
+
+export interface SybilClusterResult {
+  engine_mode: EngineMode;
+  clusters_identified: number;
+  clusters: SybilClusterRecord[];
+  query_latency_ms: number;
+}
+
+// ------------------------------------------------------------------------------
+// Multi-Hop Path Reconstruction
+// ------------------------------------------------------------------------------
+export interface PathHopRecord {
+  hop_index: number;
+  from_id: string;
+  to_id: string;
+  amount: number;
+  asset: string;
+  event_timestamp: number;
+  tx_id: string;
+}
+
+export interface CompletePathRecord {
+  total_hops: number;
+  total_volume: number;
+  duration_seconds: number;
+  path_string: string;
+  hops: PathHopRecord[];
+}
+
+export interface PathFindResult {
+  engine_mode: EngineMode;
+  source_wallet_id: string;
+  target_wallet_id: string;
+  paths_found: number;
+  paths: CompletePathRecord[];
+  query_latency_ms: number;
+}
+
+// ------------------------------------------------------------------------------
 // Universal Graph Provider Interface
 // ------------------------------------------------------------------------------
 export interface ProviderHealth {
@@ -279,5 +330,7 @@ export interface GraphProvider {
   detectCycles(timeWindowSeconds?: number, maxDepth?: number): Promise<CycleDetectionResult>;
   getRiskEvidence(walletId: string, candidate?: CandidateTransaction): Promise<RiskEvidence>;
   getGraphTopology(): Promise<GraphTopology>;
+  findPath(sourceWalletId: string, targetWalletId: string, maxHops?: number): Promise<PathFindResult>;
+  getSybilClusters(minClusterSize?: number): Promise<SybilClusterResult>;
   checkHealth(): Promise<ProviderHealth>;
 }

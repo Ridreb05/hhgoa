@@ -1,0 +1,88 @@
+// ==============================================================================
+// GSQL Query E: ghostshield_sybil_clusters
+// Algorithmic Sybil cluster detection based on shared upstream funding sources
+// and shared controlling autonomous agents.
+// Groups wallets with high relational overlap into coordinated clusters.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+DROP QUERY ghostshield_sybil_clusters
+
+CREATE QUERY ghostshield_sybil_clusters(
+    INT min_cluster_size = 2,
+    INT result_limit = 20
+) FOR GRAPH GhostShieldGraph {
+    TYPEDEF TUPLE<
+        STRING root_entity_id,
+        STRING root_type,
+        STRING root_label,
+        STRING category,
+        INT member_count,
+        STRING member_wallets,
+        DOUBLE total_cluster_volume,
+        STRING risk_level
+    > SybilClusterRecord;
+
+    ListAccum<SybilClusterRecord> @@clusters;
+
+    // --------------------------------------------------------------------------
+    // 1. Cluster wallets by shared FundingSource (mixers, CEX deposit sweeps, bridges)
+    // --------------------------------------------------------------------------
+    FS = SELECT fs FROM FundingSource:fs -(FUNDED:e)-> Wallet:w
+         ACCUM fs.@member_set += w.id,
+               fs.@total_vol += e.amount
+         POST-ACCUM
+             IF fs.@member_set.size() >= min_cluster_size THEN
+                 STRING r_level = CASE 
+                     WHEN fs.category == "MIXER" THEN "CRITICAL"
+                     WHEN fs.category == "BRIDGE" THEN "MEDIUM"
+                     ELSE "LOW"
+                 END,
+                 STRING members_str = "",
+                 FOREACH m IN fs.@member_set DO
+                     members_str = members_str + m + ","
+                 END,
+                 IF @@clusters.size() < result_limit THEN
+                     @@clusters += SybilClusterRecord(
+                         fs.id,
+                         "FundingSource",
+                         fs.label,
+                         fs.category,
+                         fs.@member_set.size(),
+                         members_str,
+                         fs.@total_vol,
+                         r_level
+                     )
+                 END
+             END;
+
+    // --------------------------------------------------------------------------
+    // 2. Cluster wallets by shared controlling Agent
+    // --------------------------------------------------------------------------
+    AG = SELECT a FROM Agent:a -(CONTROLS:e)-> Wallet:w
+         ACCUM a.@member_set += w.id
+         POST-ACCUM
+             IF a.@member_set.size() >= min_cluster_size THEN
+                 STRING members_str = "",
+                 FOREACH m IN a.@member_set DO
+                     members_str = members_str + m + ","
+                 END,
+                 IF @@clusters.size() < result_limit THEN
+                     @@clusters += SybilClusterRecord(
+                         a.id,
+                         "Agent",
+                         a.display_name,
+                         a.agent_type,
+                         a.@member_set.size(),
+                         members_str,
+                         0.0,
+                         "HIGH_COORDINATION"
+                     )
+                 END
+             END;
+
+    PRINT @@clusters AS sybil_clusters,
+          @@clusters.size() AS total_clusters_identified;
+}
+
+INSTALL QUERY ghostshield_sybil_clusters

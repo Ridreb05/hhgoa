@@ -18,6 +18,8 @@
   - [x] `database/tigergraph/queries/ghostshield_detect_cycles.gsql`: Bounded directed cycle detection with temporal window filter.
   - [x] `database/tigergraph/queries/ghostshield_investigate_wallet.gsql`: Bounded multi-hop neighborhood traversal.
   - [x] `database/tigergraph/queries/ghostshield_risk_evidence.gsql`: Multi-modal risk evidence accumulator.
+  - [x] `database/tigergraph/queries/ghostshield_sybil_clusters.gsql`: Coordinated Sybil syndicate clustering.
+  - [x] `database/tigergraph/queries/ghostshield_path_find.gsql`: Bounded multi-hop path trace & breadcrumb generator.
   - [x] `database/tigergraph/setup_graph.gsql`: Full DDL & query installation script.
   - [x] `database/tigergraph/load_data.gsql`: GSQL loading job for demo data.
 
@@ -41,6 +43,10 @@
   - [x] `components/GraphExplorer.tsx`: Interactive SVG force-directed graph with node inspection & path highlighting.
   - [x] `components/InvestigationView.tsx`: Deep dive into evidence paths, temporal delta, rule contributions, AI narrative generator, viaSocket alert sender.
   - [x] `components/SimulatorView.tsx`: 1-click preset testing (Scenarios A–E) & custom transaction evaluation.
+  - [x] `components/PathTracerView.tsx`: Step-by-step transaction waterfall breadcrumbs and time-delta trace.
+  - [x] `components/SybilClustersView.tsx`: Coordinated syndicate explorer grouping wallets by mixer/exchange/agent root.
+  - [x] `components/PolicyConfigView.tsx`: Interactive mathematical weight sliders, threshold preview, and JSON export.
+  - [x] `components/HistoryView.tsx`: Session audit trail with CSV and JSON compliance export.
   - [x] `components/StatusView.tsx`: Provider status checks, TigerGraph latency probe, viaSocket alert tester, demo reset button.
   - [x] `components/Header.tsx`: Responsive navigation, brand logo, engine mode badge, measured latency pill.
 
@@ -48,6 +54,7 @@
   - [x] `tests/unit/cycle_detection.test.ts`: Directed cycle tests, temporal constraints ($\le 600$s), depth limits. (Passed)
   - [x] `tests/unit/risk_engine.test.ts`: Deterministic risk scoring tests across all scenarios. (Passed)
   - [x] `tests/unit/integrations.test.ts`: TigerGraph unconfigured check, AI template fallback, viaSocket unconfigured check. (Passed)
+  - [x] `tests/unit/advanced_features.test.ts`: Path finding BFS, Sybil clustering, dynamic policy configuration, history store. (Passed)
   - [x] `scripts/evaluate.ts`: Precision, recall, F1, confusion matrix benchmark across synthetic ground truth. (100% Precision, 100% Recall, 100% F1).
   - [x] Production bundle build verification (`npm run build` compiled 100% cleanly).
 

@@ -6,6 +6,10 @@ import { OverviewView } from '@/components/OverviewView';
 import { GraphExplorer } from '@/components/GraphExplorer';
 import { InvestigationView } from '@/components/InvestigationView';
 import { SimulatorView } from '@/components/SimulatorView';
+import { PathTracerView } from '@/components/PathTracerView';
+import { SybilClustersView } from '@/components/SybilClustersView';
+import { PolicyConfigView } from '@/components/PolicyConfigView';
+import { HistoryView } from '@/components/HistoryView';
 import { StatusView } from '@/components/StatusView';
 import { DashboardMetrics, EngineMode } from '@/lib/graph/types';
 import demoData from '@/data/demo/entities.json';
@@ -80,6 +84,22 @@ export default function HomePage() {
 
         {activeTab === 'simulator' && (
           <SimulatorView initialScenarioId={simulatorScenario} />
+        )}
+
+        {activeTab === 'path' && (
+          <PathTracerView onSelectWallet={handleSelectNode} />
+        )}
+
+        {activeTab === 'clusters' && (
+          <SybilClustersView onSelectWallet={handleSelectNode} />
+        )}
+
+        {activeTab === 'policy' && (
+          <PolicyConfigView />
+        )}
+
+        {activeTab === 'history' && (
+          <HistoryView onSelectInvestigation={handleSelectNode} />
         )}
 
         {activeTab === 'status' && <StatusView />}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getGraphProvider } from '@/lib/graph/provider';
 import { defaultRiskEngine } from '@/lib/risk/engine';
 import { defaultViaSocketNotifier } from '@/lib/integrations/viasocket';
+import { defaultHistoryStore } from '@/lib/history/store';
 import { CandidateTransaction, EngineMode } from '@/lib/graph/types';
 
 export async function POST(req: NextRequest) {
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     // 2. Deterministic evaluation
     const assessment = defaultRiskEngine.evaluate(evidence, cycleRes.cycles, candidate);
     assessment.latency_ms = Math.round(performance.now() - startTime);
+    defaultHistoryStore.add(assessment);
 
     // 3. Dispatch alert to viaSocket if high risk (non-blocking)
     let alertResult = null;

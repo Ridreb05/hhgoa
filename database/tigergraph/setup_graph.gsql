@@ -29,5 +29,7 @@ DROP TYPE INTERACTED_BY
 @database/tigergraph/queries/ghostshield_detect_cycles.gsql
 @database/tigergraph/queries/ghostshield_investigate_wallet.gsql
 @database/tigergraph/queries/ghostshield_risk_evidence.gsql
+@database/tigergraph/queries/ghostshield_sybil_clusters.gsql
+@database/tigergraph/queries/ghostshield_path_find.gsql
 
 INSTALL QUERY ALL

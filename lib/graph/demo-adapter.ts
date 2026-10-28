@@ -528,6 +528,146 @@ export class DemoGraphAdapter implements GraphProvider {
     return { nodes, links };
   }
 
+  public async getSybilClusters(minClusterSize: number = 2): Promise<import('./types').SybilClusterResult> {
+    const startTime = performance.now();
+    const clusters: import('./types').SybilClusterRecord[] = [];
+
+    // 1. Group by FundingSource
+    const fsMap = new Map<string, { wallets: string[]; totalVol: number }>();
+    for (const fe of this.fundingEdges) {
+      if (!fsMap.has(fe.from)) fsMap.set(fe.from, { wallets: [], totalVol: 0 });
+      const entry = fsMap.get(fe.from)!;
+      if (!entry.wallets.includes(fe.to)) entry.wallets.push(fe.to);
+      entry.totalVol += fe.amount;
+    }
+
+    for (const [fsId, data] of fsMap.entries()) {
+      if (data.wallets.length >= minClusterSize) {
+        const fs = this.fundingSources.get(fsId);
+        const category = fs?.category || 'UNKNOWN';
+        const riskLevel = category === 'MIXER' ? 'CRITICAL' : category === 'BRIDGE' ? 'MEDIUM' : 'LOW';
+
+        clusters.push({
+          root_entity_id: fsId,
+          root_type: 'FundingSource',
+          root_label: fs?.label || fsId,
+          category,
+          member_count: data.wallets.length,
+          member_wallets: data.wallets,
+          total_cluster_volume: parseFloat(data.totalVol.toFixed(2)),
+          risk_level: riskLevel,
+        });
+      }
+    }
+
+    // 2. Group by Agent controls
+    const agMap = new Map<string, string[]>();
+    for (const ce of this.controlEdges) {
+      if (!agMap.has(ce.from)) agMap.set(ce.from, []);
+      const list = agMap.get(ce.from)!;
+      if (!list.includes(ce.to)) list.push(ce.to);
+    }
+
+    for (const [agId, wallets] of agMap.entries()) {
+      if (wallets.length >= minClusterSize) {
+        const ag = this.agents.get(agId);
+        clusters.push({
+          root_entity_id: agId,
+          root_type: 'Agent',
+          root_label: ag?.display_name || agId,
+          category: ag?.agent_type || 'AI_AGENT',
+          member_count: wallets.length,
+          member_wallets: wallets,
+          total_cluster_volume: 0,
+          risk_level: 'HIGH_COORDINATION',
+        });
+      }
+    }
+
+    const latency = Math.max(1, Math.round(performance.now() - startTime));
+
+    return {
+      engine_mode: 'demo',
+      clusters_identified: clusters.length,
+      clusters,
+      query_latency_ms: latency,
+    };
+  }
+
+  public async findPath(
+    sourceWalletId: string,
+    targetWalletId: string,
+    maxHops: number = 4
+  ): Promise<import('./types').PathFindResult> {
+    const startTime = performance.now();
+    const discoveredPaths: import('./types').CompletePathRecord[] = [];
+
+    // Adjacency map
+    const adj = new Map<string, TransferEdge[]>();
+    for (const tx of this.transfers) {
+      if (!adj.has(tx.from)) adj.set(tx.from, []);
+      adj.get(tx.from)!.push(tx);
+    }
+
+    // BFS Queue: [currentWallet, visitedWallets, edgesUsed]
+    const queue: Array<{ current: string; visited: string[]; edges: TransferEdge[] }> = [
+      { current: sourceWalletId, visited: [sourceWalletId], edges: [] },
+    ];
+
+    while (queue.length > 0 && discoveredPaths.length < 5) {
+      const { current, visited, edges } = queue.shift()!;
+
+      if (edges.length >= maxHops) continue;
+
+      const out = adj.get(current) || [];
+      for (const edge of out) {
+        if (edge.to === targetWalletId) {
+          // Path reached target!
+          const completeEdges = [...edges, edge];
+          const pathHops = completeEdges.map((e, idx) => ({
+            hop_index: idx + 1,
+            from_id: e.from,
+            to_id: e.to,
+            amount: e.amount,
+            asset: e.asset,
+            event_timestamp: e.event_timestamp,
+            tx_id: e.tx_id,
+          }));
+
+          const times = completeEdges.map((e) => e.event_timestamp);
+          const totalVol = completeEdges.reduce((sum, e) => sum + e.amount, 0);
+          const duration = Math.max(...times) - Math.min(...times);
+          const pathStr = [sourceWalletId, ...completeEdges.map((e) => e.to)].join(' -> ');
+
+          discoveredPaths.push({
+            total_hops: completeEdges.length,
+            total_volume: parseFloat(totalVol.toFixed(3)),
+            duration_seconds: duration,
+            path_string: pathStr,
+            hops: pathHops,
+          });
+        } else if (!visited.includes(edge.to) && visited.length < maxHops) {
+          queue.push({
+            current: edge.to,
+            visited: [...visited, edge.to],
+            edges: [...edges, edge],
+          });
+        }
+      }
+    }
+
+    const latency = Math.max(1, Math.round(performance.now() - startTime));
+
+    return {
+      engine_mode: 'demo',
+      source_wallet_id: sourceWalletId,
+      target_wallet_id: targetWalletId,
+      paths_found: discoveredPaths.length,
+      paths: discoveredPaths,
+      query_latency_ms: latency,
+    };
+  }
+
   public async checkHealth(): Promise<ProviderHealth> {
     return {
       status: 'ONLINE',

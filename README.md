@@ -73,6 +73,8 @@ Located in [`database/tigergraph/queries/`](database/tigergraph/queries/):
 | [`ghostshield_detect_cycles.gsql`](database/tigergraph/queries/ghostshield_detect_cycles.gsql) | Performs bounded directed cycle detection ($k \in [3, 4]$) with an explicit chronological order and temporal window constraint ($\Delta t = t_{\max} - t_{\min} \le 600\text{s}$), and calculates volume retention ratios. |
 | [`ghostshield_investigate_wallet.gsql`](database/tigergraph/queries/ghostshield_investigate_wallet.gsql) | Traverses a bounded 1-hop and 2-hop neighborhood from a target wallet, extracting incoming/outgoing transfers, direct funding, shared funding peer wallets, controlling agents, and risk seed proximity. |
 | [`ghostshield_risk_evidence.gsql`](database/tigergraph/queries/ghostshield_risk_evidence.gsql) | Extracts multi-modal risk features across cycle participation, common funding overlap, and seed proximity using `SetAccum` intersections and `OrAccum`. |
+| [`ghostshield_sybil_clusters.gsql`](database/tigergraph/queries/ghostshield_sybil_clusters.gsql) | Identifies coordinated Sybil syndicates sharing high-degree funding sources (mixers, bridges, CEX sweeps) or shared controlling agents using vertex `SetAccum` and parallel set clustering. |
+| [`ghostshield_path_find.gsql`](database/tigergraph/queries/ghostshield_path_find.gsql) | Reconstructs step-by-step bounded multi-hop transaction paths between any source wallet and target entity with timestamps, transaction IDs, and volume loss tracking. |
 
 ---
 
