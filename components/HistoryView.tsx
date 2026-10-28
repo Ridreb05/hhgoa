@@ -64,115 +64,115 @@ export function HistoryView({ onSelectInvestigation }: HistoryViewProps) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 font-mono">
       {/* Top Header & Actions */}
-      <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#0d121c] border border-[#1b2333] p-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <span>Forensic Investigation Audit Trail</span>
+          <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+            <span>AUDIT TRAIL & COMPLIANCE LOG</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-[11px] text-slate-500 mt-0.5 font-sans">
             Immutable session log recording all simulated and evaluated wallet transactions with compliance export.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs">
           <a
             href="/api/history?format=csv"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#080b11] hover:bg-[#1e293b] text-slate-200 border border-[#1b2333] font-bold transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export CSV</span>
+            <span>CSV</span>
           </a>
           <a
             href="/api/history?format=json"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#080b11] hover:bg-[#1e293b] text-slate-200 border border-[#1b2333] font-bold transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export JSON</span>
+            <span>JSON</span>
           </a>
           <button
             onClick={handleClear}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/60 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/20 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 font-bold transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Clear History</span>
+            <span>CLEAR</span>
           </button>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0f172a] border border-card-border rounded-xl p-3.5 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0d121c] border border-[#1b2333] p-3 text-xs">
         <div className="flex items-center gap-2 flex-1 min-w-[260px]">
-          <Search className="w-4 h-4 text-slate-400" />
+          <Search className="w-3.5 h-3.5 text-slate-500" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by wallet, counterparty, or investigation ID..."
-            className="w-full bg-[#1e293b]/70 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-cyan-500"
+            placeholder="Search by wallet, counterparty, or ID..."
+            className="w-full bg-[#080b11] border border-[#1b2333] px-2.5 py-1 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-cyan-500"
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-[#1e293b]/70 p-1 rounded-lg border border-slate-700">
+        <div className="flex items-center border border-[#1b2333] bg-[#080b11]">
           <button
             onClick={() => setFilterAction('all')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
               filterAction === 'all'
-                ? 'bg-cyan-500/20 text-cyan-300 font-medium'
+                ? 'bg-[#1e293b] text-cyan-300 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            All ({records.length})
+            ALL ({records.length})
           </button>
           <button
             onClick={() => setFilterAction('REJECT')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
               filterAction === 'REJECT'
-                ? 'bg-red-500/20 text-red-300 font-medium'
+                ? 'bg-rose-950/30 text-rose-300 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Rejected
+            REJECTED
           </button>
           <button
             onClick={() => setFilterAction('REVIEW')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
               filterAction === 'REVIEW'
-                ? 'bg-amber-500/20 text-amber-300 font-medium'
+                ? 'bg-amber-950/30 text-amber-300 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Review
+            REVIEW
           </button>
           <button
             onClick={() => setFilterAction('ALLOW')}
-            className={`px-2.5 py-1 rounded transition-colors ${
+            className={`px-2.5 py-1 transition-colors ${
               filterAction === 'ALLOW'
-                ? 'bg-emerald-500/20 text-emerald-300 font-medium'
+                ? 'bg-emerald-950/30 text-emerald-300 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            Allowed
+            ALLOWED
           </button>
         </div>
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-[#0f172a] border border-card-border rounded-xl overflow-hidden shadow-lg">
+      <div className="bg-[#0d121c] border border-[#1b2333] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300 border-collapse">
             <thead>
-              <tr className="bg-[#111827] border-b border-card-border text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                <th className="py-3 px-4">Investigation ID</th>
-                <th className="py-3 px-4">Timestamp</th>
-                <th className="py-3 px-4">Target Entity</th>
-                <th className="py-3 px-4">Counterparty</th>
-                <th className="py-3 px-4 text-center">Score</th>
-                <th className="py-3 px-4 text-center">Decision</th>
-                <th className="py-3 px-4">Primary Signals</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+              <tr className="bg-[#080b11] border-b border-[#1b2333] text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="py-2.5 px-3">ID</th>
+                <th className="py-2.5 px-3">TIMESTAMP</th>
+                <th className="py-2.5 px-3">TARGET</th>
+                <th className="py-2.5 px-3">COUNTERPARTY</th>
+                <th className="py-2.5 px-3 text-center">SCORE</th>
+                <th className="py-2.5 px-3 text-center">DECISION</th>
+                <th className="py-2.5 px-3">PRIMARY SIGNALS</th>
+                <th className="py-2.5 px-3 text-right">ACTION</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">

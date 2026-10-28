@@ -96,23 +96,23 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Wallet Search Bar & Quick Entity Selectors */}
-      <div className="bg-[#0f172a] border border-card-border rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-1 min-w-[280px]">
-          <Search className="w-4 h-4 text-slate-400" />
+    <div className="space-y-4 font-mono">
+      {/* Target Wallet Selector Rail */}
+      <div className="bg-[#0d121c] border border-[#1b2333] p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">TARGET:</span>
           <input
             type="text"
             value={walletId}
             onChange={(e) => setWalletId(e.target.value)}
-            placeholder="Enter target wallet address (e.g. 0x71c...sus1)"
-            className="w-full bg-[#1e293b]/70 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-cyan-500"
+            placeholder="0x71c...sus1"
+            className="w-full bg-[#080b11] border border-[#1b2333] px-2.5 py-1.5 text-xs text-white placeholder-slate-600 font-mono focus:outline-none focus:border-cyan-500"
           />
         </div>
 
         {/* Quick select presets */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11px] text-slate-500">Presets:</span>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mr-1">PRESETS:</span>
           {demoData.vertices.wallets.slice(0, 5).map((w) => (
             <button
               key={w.id}
@@ -120,10 +120,10 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                 setWalletId(w.id);
                 runInvestigation(w.id);
               }}
-              className={`px-2 py-1 rounded text-[11px] font-mono transition-colors ${
+              className={`px-2 py-1 text-[11px] font-mono border transition-colors ${
                 walletId === w.id
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                  : 'bg-slate-800/60 text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-cyan-950/40 text-cyan-300 border-cyan-500/50 font-bold'
+                  : 'bg-[#080b11] text-slate-400 hover:text-white border-[#1b2333]'
               }`}
             >
               {w.id}
@@ -133,50 +133,50 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin text-cyan-400" />
-          <span className="text-sm">Executing Bounded GSQL Multi-Hop Traversal...</span>
+        <div className="flex items-center justify-center py-16 text-slate-400 gap-2 border border-[#1b2333] bg-[#0d121c]">
+          <RefreshCw className="w-4 h-4 animate-spin text-cyan-400" />
+          <span className="text-xs">EXECUTING GSQL BOUNDED MULTI-HOP TRAVERSAL...</span>
         </div>
       )}
 
       {!isLoading && assessment && investigation && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Main Assessment Header Card */}
-          <div className="bg-[#0f172a] border border-card-border rounded-xl p-5">
+          <div className="bg-[#0d121c] border border-[#1b2333] p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Target Investigation
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    TARGET FORENSICS
                   </span>
                   <span className="text-[10px] font-mono text-slate-500">
                     ID: {assessment.investigation_id}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
-                    {assessment.engine_mode.toUpperCase()} MODE
+                  <span className="px-1.5 py-0.5 text-[9px] font-bold tracking-wider bg-[#080b11] text-cyan-300 border border-[#1b2333]">
+                    {assessment.engine_mode.toUpperCase()} ADAPTER
                   </span>
                 </div>
-                <h2 className="text-xl font-bold font-mono text-white select-all">
+                <h2 className="text-lg font-bold font-mono text-white select-all">
                   {assessment.target_wallet}
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Label: <span className="text-slate-200 font-medium">{investigation.target_wallet.label}</span> • Network:{' '}
+                <p className="text-[11px] text-slate-400">
+                  Label: <span className="text-slate-200">{investigation.target_wallet.label}</span> • Network:{' '}
                   <span className="text-slate-200 uppercase">{investigation.target_wallet.network}</span> • Provenance:{' '}
-                  <span className="text-slate-300 font-mono">{investigation.target_wallet.provenance}</span>
+                  <span className="text-slate-400 font-mono">{investigation.target_wallet.provenance}</span>
                 </p>
               </div>
 
               {/* Score Gauge & Action Badge */}
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Deterministic Risk Score
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    RISK SCORE
                   </p>
-                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
+                  <div className="flex items-baseline justify-end gap-1 mt-0.5 font-mono">
                     <span
-                      className={`text-3xl font-extrabold ${
+                      className={`text-2xl font-bold ${
                         assessment.action === 'REJECT'
-                          ? 'text-red-400'
+                          ? 'text-rose-400'
                           : assessment.action === 'REVIEW'
                           ? 'text-amber-400'
                           : 'text-emerald-400'
@@ -184,27 +184,27 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                     >
                       {assessment.score}
                     </span>
-                    <span className="text-xs text-slate-500 font-bold">/ 100</span>
+                    <span className="text-[10px] text-slate-600 font-bold">/ 100</span>
                   </div>
                 </div>
 
                 <div
-                  className={`px-4 py-2.5 rounded-xl border flex flex-col items-center justify-center min-w-[120px] ${
+                  className={`px-3 py-2 border flex flex-col items-center justify-center min-w-[110px] ${
                     assessment.action === 'REJECT'
-                      ? 'bg-red-950/40 border-red-500/50 text-red-300'
+                      ? 'bg-rose-950/20 border-rose-500/50 text-rose-300'
                       : assessment.action === 'REVIEW'
-                      ? 'bg-amber-950/40 border-amber-500/50 text-amber-300'
-                      : 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+                      ? 'bg-amber-950/20 border-amber-500/50 text-amber-300'
+                      : 'bg-emerald-950/20 border-emerald-500/50 text-emerald-300'
                   }`}
                 >
-                  <span className="text-[10px] font-semibold tracking-wider uppercase">Recommendation</span>
-                  <span className="text-base font-extrabold tracking-wide">{assessment.action}</span>
+                  <span className="text-[9px] font-bold tracking-wider uppercase">DECISION</span>
+                  <span className="text-sm font-bold tracking-wider">{assessment.action}</span>
                 </div>
               </div>
             </div>
 
             {/* Explanation Summary */}
-            <div className="mt-4 pt-4 border-t border-card-border">
+            <div className="mt-3 pt-3 border-t border-[#1b2333]">
               <p className="text-xs text-slate-300 leading-relaxed font-sans">
                 {assessment.explanation}
               </p>
@@ -212,53 +212,58 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
           </div>
 
           {/* Contributing Rules Breakdown */}
-          <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-4">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-cyan-400" />
-              <span>Contributing Risk Rule Attribution</span>
-            </h3>
+          <div className="bg-[#0d121c] border border-[#1b2333] p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-[#1b2333] pb-2">
+              <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <span>EVIDENCE ATTRIBUTION MATRIX</span>
+              </span>
+              <span className="text-[10px] text-slate-500">
+                {assessment.contributing_rules.filter(r => r.triggered).length} SIGNALS TRIGGERED
+              </span>
+            </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {assessment.contributing_rules.map((rule) => (
                 <div
                   key={rule.rule_id}
-                  className={`p-3 rounded-lg border flex flex-wrap items-center justify-between gap-3 text-xs ${
+                  className={`p-2.5 border flex flex-wrap items-center justify-between gap-2 text-xs ${
                     rule.triggered
-                      ? 'bg-red-950/20 border-red-900/50 text-slate-200'
-                      : 'bg-slate-900/40 border-slate-800/80 text-slate-400'
+                      ? 'bg-rose-950/10 border-rose-900/40 text-slate-200'
+                      : 'bg-[#080b11] border-[#1b2333] text-slate-400 opacity-60'
                   }`}
                 >
-                  <div className="flex items-start gap-2.5 flex-1 min-w-[240px]">
+                  <div className="flex items-start gap-2 flex-1 min-w-[240px]">
                     {rule.triggered ? (
-                      <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
                     ) : (
-                      <CheckCircle className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
+                      <CheckCircle className="w-3.5 h-3.5 text-slate-600 shrink-0 mt-0.5" />
                     )}
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${rule.triggered ? 'text-white' : 'text-slate-400'}`}>
+                        <span className={`font-semibold text-xs ${rule.triggered ? 'text-white' : 'text-slate-400'}`}>
                           {rule.name}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-500">[{rule.rule_id}]</span>
+                        <span className="text-[9px] font-mono text-slate-500">[{rule.rule_id}]</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{rule.explanation}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 font-sans leading-relaxed">{rule.explanation}</p>
                       {rule.evidence_snippet && (
-                        <p className="text-[10px] font-mono text-amber-300/80 mt-1">
-                          Evidence Path: {rule.evidence_snippet}
+                        <p className="text-[10px] font-mono text-amber-400/90 mt-1 bg-[#080b11] p-1 border border-[#1b2333]">
+                          TRAVERSAL EVIDENCE: {rule.evidence_snippet}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="text-right">
+                  <div className="text-right font-mono">
                     <span
-                      className={`font-mono font-bold text-xs ${
-                        rule.triggered ? 'text-red-400' : 'text-slate-500'
+                      className={`font-bold text-xs ${
+                        rule.triggered ? 'text-rose-400' : 'text-slate-600'
                       }`}
                     >
                       +{rule.points}
                     </span>
-                    <span className="text-[10px] text-slate-600 font-mono"> / {rule.max_points} pts</span>
+                    <span className="text-[10px] text-slate-600"> / {rule.max_points} PTS</span>
                   </div>
                 </div>
               ))}
@@ -268,24 +273,26 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
           {/* Multi-Hop Evidence & Graph Relationships Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Transfers Neighborhood */}
-            <div className="bg-[#0f172a] border border-card-border rounded-xl p-4 space-y-3">
-              <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-                <span>P2P Transfer Activity ({investigation.transfers.length})</span>
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-              </h4>
+            <div className="bg-[#0d121c] border border-[#1b2333] p-3 space-y-2">
+              <div className="flex items-center justify-between border-b border-[#1b2333] pb-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  TRANSFER ACTIVITY ({investigation.transfers.length})
+                </span>
+                <Clock className="w-3 h-3 text-slate-500" />
+              </div>
 
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                 {investigation.transfers.map((tx, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded bg-slate-900/60 border border-slate-800 text-[11px] flex items-center justify-between font-mono"
+                    className="p-2 border border-[#1b2333] bg-[#080b11] text-[11px] flex items-center justify-between font-mono"
                   >
                     <div>
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-bold mr-2 ${
+                        className={`text-[9px] px-1 py-0.2 mr-1.5 font-bold border ${
                           tx.direction === 'OUTGOING'
-                            ? 'bg-amber-500/20 text-amber-300'
-                            : 'bg-cyan-500/20 text-cyan-300'
+                            ? 'border-amber-500/30 text-amber-300'
+                            : 'border-cyan-500/30 text-cyan-300'
                         }`}
                       >
                         {tx.direction}
@@ -294,35 +301,37 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                         {tx.direction === 'OUTGOING' ? `→ ${tx.to_id}` : `← ${tx.from_id}`}
                       </span>
                     </div>
-                    <span className="text-emerald-400 font-semibold">
+                    <span className="text-emerald-400 font-semibold font-mono">
                       {tx.amount} {tx.asset}
                     </span>
                   </div>
                 ))}
                 {investigation.transfers.length === 0 && (
-                  <p className="text-xs text-slate-500 italic">No transfers found for this address.</p>
+                  <p className="text-xs text-slate-600 italic p-2">Zero direct transfer edges detected.</p>
                 )}
               </div>
             </div>
 
             {/* Funding Sources & Agent Control */}
-            <div className="bg-[#0f172a] border border-card-border rounded-xl p-4 space-y-3">
-              <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-                <span>Liquidity Origins & Controlling Agents</span>
-                <Landmark className="w-3.5 h-3.5 text-purple-400" />
-              </h4>
+            <div className="bg-[#0d121c] border border-[#1b2333] p-3 space-y-2">
+              <div className="flex items-center justify-between border-b border-[#1b2333] pb-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  LIQUIDITY & DELEGATION ANCHORS
+                </span>
+                <Landmark className="w-3 h-3 text-indigo-400" />
+              </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {investigation.direct_funding_sources.map((fs, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded bg-purple-950/20 border border-purple-900/40 text-[11px] flex items-center justify-between"
+                    className="p-2 border border-[#1b2333] bg-[#080b11] text-[11px] flex items-center justify-between font-mono"
                   >
                     <div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-purple-500/20 text-purple-300 mr-2">
-                        {fs.category}
+                      <span className="text-[9px] px-1 py-0.2 mr-1.5 font-bold border border-indigo-500/30 text-indigo-300">
+                        {fs.category.toUpperCase()}
                       </span>
-                      <span className="text-slate-200 font-medium">{fs.label}</span>
+                      <span className="text-slate-200">{fs.label}</span>
                     </div>
                     <span className="text-slate-400 font-mono text-[10px]">{fs.amount} ETH</span>
                   </div>
@@ -331,17 +340,17 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                 {investigation.controlling_agents.map((ag, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 rounded bg-pink-950/20 border border-pink-900/40 text-[11px] flex items-center justify-between"
+                    className="p-2 border border-[#1b2333] bg-[#080b11] text-[11px] flex items-center justify-between font-mono"
                   >
                     <div>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-pink-500/20 text-pink-300 mr-2">
-                        {ag.agent_type}
+                      <span className="text-[9px] px-1 py-0.2 mr-1.5 font-bold border border-slate-600 text-slate-300">
+                        {ag.agent_type.toUpperCase()}
                       </span>
-                      <span className="text-slate-200 font-medium">{ag.display_name}</span>
+                      <span className="text-slate-200">{ag.display_name}</span>
                     </div>
                     {ag.delegation_partner_id && (
-                      <span className="text-[10px] font-mono text-amber-300">
-                        Delegates → {ag.delegation_partner_id}
+                      <span className="text-[10px] text-amber-300">
+                        DELEGATES → {ag.delegation_partner_id}
                       </span>
                     )}
                   </div>
@@ -349,22 +358,22 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
 
                 {investigation.direct_funding_sources.length === 0 &&
                   investigation.controlling_agents.length === 0 && (
-                    <p className="text-xs text-slate-500 italic">No upstream funding or agents linked.</p>
+                    <p className="text-xs text-slate-600 italic p-2">Zero upstream funding sources or controlling agents.</p>
                   )}
               </div>
             </div>
           </div>
 
           {/* AI Investigation Report & viaSocket Alert Action Bar */}
-          <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-card-border pb-3">
+          <div className="bg-[#0d121c] border border-[#1b2333] p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2333] pb-3">
               <div>
-                <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <span>AI Investigation Synthesis & Dispatch</span>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>AI REPORT & WEBHOOK DISPATCH</span>
                 </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Synthesizes verified TigerGraph evidence into natural language; dispatches webhook alerts
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  AIGI narrative synthesis & viaSocket forensic webhook dispatcher
                 </p>
               </div>
 
@@ -372,19 +381,19 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                 <button
                   onClick={handleGenerateAiReport}
                   disabled={isAiLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1b2333] hover:bg-cyan-900/40 text-cyan-300 border border-cyan-500/40 disabled:opacity-50 text-xs font-bold transition-colors font-mono"
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>{isAiLoading ? 'Synthesizing...' : 'Generate Narrative Report'}</span>
+                  <FileText className="w-3 h-3" />
+                  <span>{isAiLoading ? 'GENERATING...' : 'SYNTHESIZE REPORT'}</span>
                 </button>
 
                 <button
                   onClick={handleDispatchAlert}
                   disabled={isAlertSending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1b2333] hover:bg-indigo-900/40 text-indigo-300 border border-indigo-500/40 disabled:opacity-50 text-xs font-bold transition-colors font-mono"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isAlertSending ? 'Dispatching...' : 'Dispatch viaSocket Alert'}</span>
+                  <Send className="w-3 h-3" />
+                  <span>{isAlertSending ? 'DISPATCHING...' : 'VIASOCKET ALERT'}</span>
                 </button>
               </div>
             </div>
@@ -392,43 +401,43 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
             {/* Alert Status Result Pill */}
             {alertStatus && (
               <div
-                className={`p-3 rounded-lg text-xs flex items-center justify-between ${
+                className={`p-2.5 border text-xs flex items-center justify-between font-mono ${
                   alertStatus.status === 'DELIVERED'
-                    ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-300'
+                    ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'
                     : alertStatus.status === 'UNCONFIGURED'
-                    ? 'bg-amber-950/40 border border-amber-500/40 text-amber-300'
-                    : 'bg-red-950/40 border border-red-500/40 text-red-300'
+                    ? 'bg-amber-950/20 border-amber-500/40 text-amber-300'
+                    : 'bg-rose-950/20 border-rose-500/40 text-rose-300'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-bold uppercase tracking-wider">[{alertStatus.status}]</span>
+                  <span className="font-bold">[{alertStatus.status}]</span>
                   <span>{alertStatus.message}</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400">{alertStatus.timestamp}</span>
+                <span className="text-[10px] text-slate-500">{alertStatus.timestamp}</span>
               </div>
             )}
 
             {/* AI Report Card */}
             {aiReport && (
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 space-y-3 text-xs">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="bg-[#080b11] border border-[#1b2333] p-3.5 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between border-b border-[#1b2333] pb-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white uppercase text-[10px] tracking-wider">
-                      Executive Summary
+                    <span className="font-bold text-white uppercase text-[10px] tracking-wider">
+                      FORENSIC INTELLIGENCE DISPATCH
                     </span>
-                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                      SOURCE: {aiReport.source.toUpperCase()}
+                    <span className="px-1.5 py-0.2 text-[9px] font-bold bg-[#1b2333] text-cyan-300 border border-cyan-500/30">
+                      PROVIDER: {aiReport.source.toUpperCase()}
                     </span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-500">{aiReport.generated_at}</span>
                 </div>
 
-                <p className="text-slate-200 leading-relaxed font-sans">{aiReport.executive_summary}</p>
+                <p className="text-slate-300 leading-relaxed font-sans text-xs">{aiReport.executive_summary}</p>
 
                 {aiReport.detailed_findings.length > 0 && (
                   <div className="space-y-1 pt-1">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase">Key Findings:</span>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Key Signals:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-300 text-[11px] font-sans">
                       {aiReport.detailed_findings.map((f, i) => (
                         <li key={i}>{f}</li>
                       ))}
@@ -438,8 +447,8 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
 
                 {aiReport.recommended_analyst_actions.length > 0 && (
                   <div className="space-y-1 pt-1">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase">Recommended Actions:</span>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300 text-[11px]">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Action Recommendations:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-300 text-[11px] font-sans">
                       {aiReport.recommended_analyst_actions.map((a, i) => (
                         <li key={i}>{a}</li>
                       ))}
@@ -447,7 +456,7 @@ export function InvestigationView({ initialWalletId }: InvestigationViewProps) {
                   </div>
                 )}
 
-                <p className="text-[10px] text-slate-500 italic pt-2 border-t border-slate-800/80">
+                <p className="text-[10px] text-slate-500 italic pt-2 border-t border-[#1b2333]">
                   {aiReport.disclaimer}
                 </p>
               </div>

@@ -124,27 +124,27 @@ export function GraphExplorer({
     setIsDraggingCanvas(false);
   };
 
-  // Node coloring by type
+  // Node coloring by disciplined role (Un-slopped: eliminated rainbow candy palette)
   const getNodeFill = (node: GraphNode) => {
-    if (node.is_risk_seed) return '#ef4444'; // Red
-    if (highlightedNodeIds.includes(node.id)) return '#f59e0b'; // Amber
+    if (node.is_risk_seed) return '#f43f5e'; // Rose 500 (Risk seed)
+    if (highlightedNodeIds.includes(node.id)) return '#f59e0b'; // Amber 500 (Highlight)
     switch (node.category) {
       case 'wallet':
-        return '#06b6d4'; // Cyan
+        return '#38bdf8'; // Sky 400
       case 'funding_source':
-        return '#8b5cf6'; // Purple
+        return '#818cf8'; // Indigo 400
       case 'agent':
-        return '#ec4899'; // Pink
+        return '#94a3b8'; // Slate 400
       case 'smart_contract':
-        return '#10b981'; // Emerald
+        return '#2dd4bf'; // Teal 400
       default:
-        return '#64748b'; // Slate
+        return '#64748b'; // Slate 500
     }
   };
 
   const getNodeStroke = (node: GraphNode) => {
     if (node.id === selectedNode?.id) return '#ffffff';
-    if (node.is_risk_seed) return '#fca5a5';
+    if (node.is_risk_seed) return '#fda4af';
     return '#1e293b';
   };
 
@@ -171,92 +171,92 @@ export function GraphExplorer({
   };
 
   return (
-    <div className="relative w-full h-[640px] bg-[#0b1120] rounded-xl border border-card-border overflow-hidden flex flex-col">
+    <div className="relative w-full h-[640px] bg-[#080b11] rounded-none border border-[#1b2333] overflow-hidden flex flex-col font-mono">
       {/* Top Controls Toolbar */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-[#0f172a] border-b border-card-border z-10 gap-2">
+      <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#0d121c] border-b border-[#1b2333] z-10 gap-2">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-            <Layers className="w-4 h-4 text-cyan-400" />
-            <span>GRAPH EXPLORER</span>
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200 tracking-wider">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>TOPOLOGY GRAPH</span>
           </div>
 
           {/* Node Category Filters */}
-          <div className="flex items-center gap-1 bg-[#1e293b]/70 p-1 rounded-lg border border-slate-800 text-xs">
+          <div className="flex items-center border border-[#1b2333] bg-[#080b11] text-[11px]">
             <button
               onClick={() => setFilterCategory('all')}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                filterCategory === 'all' ? 'bg-cyan-500/20 text-cyan-300 font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
+                filterCategory === 'all' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              All ({topology.nodes.length})
+              ALL ({topology.nodes.length})
             </button>
             <button
               onClick={() => setFilterCategory('wallet')}
-              className={`px-2 py-1 rounded transition-colors ${
-                filterCategory === 'wallet' ? 'bg-cyan-500/20 text-cyan-300 font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
+                filterCategory === 'wallet' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Wallets
+              WALLETS
             </button>
             <button
               onClick={() => setFilterCategory('funding_source')}
-              className={`px-2 py-1 rounded transition-colors ${
-                filterCategory === 'funding_source' ? 'bg-purple-500/20 text-purple-300 font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
+                filterCategory === 'funding_source' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Funding
+              FUNDING
             </button>
             <button
               onClick={() => setFilterCategory('agent')}
-              className={`px-2 py-1 rounded transition-colors ${
-                filterCategory === 'agent' ? 'bg-pink-500/20 text-pink-300 font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 border-r border-[#1b2333] transition-colors ${
+                filterCategory === 'agent' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Agents
+              AGENTS
             </button>
             <button
               onClick={() => setFilterCategory('smart_contract')}
-              className={`px-2 py-1 rounded transition-colors ${
-                filterCategory === 'smart_contract' ? 'bg-emerald-500/20 text-emerald-300 font-medium' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 transition-colors ${
+                filterCategory === 'smart_contract' ? 'bg-[#1e293b] text-cyan-300 font-semibold' : 'text-slate-400 hover:text-white'
               }`}
             >
-              Contracts
+              CONTRACTS
             </button>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-[11px]">
           <button
             onClick={() => setHighlightCycles(!highlightCycles)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 border transition-colors ${
               highlightCycles
-                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 font-medium'
-                : 'bg-slate-800/80 border-slate-700 text-slate-400'
+                ? 'bg-amber-950/30 border-amber-500/50 text-amber-300 font-semibold'
+                : 'bg-[#080b11] border-[#1b2333] text-slate-400 hover:text-white'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Highlight Cycles</span>
+            <span>CYCLE DETECTOR</span>
           </button>
 
-          <div className="flex items-center bg-slate-800/80 rounded-lg border border-slate-700 p-0.5">
+          <div className="flex items-center border border-[#1b2333] bg-[#080b11]">
             <button
               onClick={() => handleZoom(0.15)}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded"
+              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b] border-r border-[#1b2333]"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleZoom(-0.15)}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded"
+              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b] border-r border-[#1b2333]"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleResetView}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded"
+              className="p-1 text-slate-400 hover:text-white hover:bg-[#1e293b]"
               title="Reset View"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -383,36 +383,42 @@ export function GraphExplorer({
                   }}
                   className="cursor-pointer group"
                 >
-                  {/* Outer pulse for risk seeds or selected nodes */}
-                  {(node.is_risk_seed || isSelected || isHighlighted) && (
+                  {/* Sharp targeting ring for risk seeds or selected nodes (Un-slopped: zero bouncy animations) */}
+                  {node.is_risk_seed && (
                     <circle
-                      r="19"
+                      r="18"
                       fill="none"
-                      stroke={node.is_risk_seed ? '#ef4444' : '#06b6d4'}
-                      strokeWidth="2"
-                      opacity="0.6"
-                      className="animate-pulse"
+                      stroke="#f43f5e"
+                      strokeWidth="1"
+                      strokeDasharray="3 2"
+                    />
+                  )}
+                  {isSelected && (
+                    <circle
+                      r="17"
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
                     />
                   )}
 
                   {/* Core Node Circle */}
                   <circle
-                    r="13"
+                    r="12"
                     fill={fill}
                     stroke={stroke}
-                    strokeWidth={isSelected ? 3 : 1.5}
-                    className="transition-transform group-hover:scale-110"
+                    strokeWidth={isSelected ? 2 : 1}
                   />
 
                   {/* Node Label Text */}
                   <text
-                    y="24"
-                    fill="#cbd5e1"
+                    y="22"
+                    fill="#94a3b8"
                     fontSize="10"
                     textAnchor="middle"
-                    className="font-medium pointer-events-none"
+                    className="font-mono font-medium pointer-events-none tracking-tight"
                   >
-                    {node.label.length > 18 ? node.label.substring(0, 16) + '...' : node.label}
+                    {node.label.length > 18 ? node.label.substring(0, 16) + '…' : node.label}
                   </text>
                 </g>
               );
@@ -420,69 +426,74 @@ export function GraphExplorer({
           </g>
         </svg>
 
-        {/* Node Inspector Side-Sheet */}
+        {/* Node Inspector Docked Terminal Sheet */}
         {selectedNode && (
-          <div className="absolute top-3 right-3 w-80 bg-[#0f172a]/95 backdrop-blur-md border border-card-border rounded-xl p-4 shadow-2xl text-xs space-y-3 z-20">
-            <div className="flex items-center justify-between border-b border-card-border pb-2">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: getNodeFill(selectedNode) }}
-                />
-                <span className="font-semibold text-white uppercase text-[11px] tracking-wider">
-                  {selectedNode.category.replace('_', ' ')}
-                </span>
+          <div className="absolute top-0 right-0 h-full w-84 bg-[#0d121c] border-l border-[#1b2333] p-4 text-xs flex flex-col justify-between z-20 overflow-y-auto">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[#1b2333] pb-2">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-none"
+                    style={{ backgroundColor: getNodeFill(selectedNode) }}
+                  />
+                  <span className="font-bold text-white uppercase text-[10px] tracking-wider font-mono">
+                    {selectedNode.category.replace('_', ' ')}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedNode(null)}
+                  className="text-slate-400 hover:text-white font-mono text-sm px-1"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
 
-            <div>
-              <p className="text-[10px] text-slate-400 font-mono">Entity Identifier</p>
-              <p className="font-mono text-cyan-300 break-all text-xs select-all mt-0.5">
-                {selectedNode.id}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-slate-400 font-mono">Display Label</p>
-              <p className="font-medium text-slate-200 mt-0.5">{selectedNode.label}</p>
-            </div>
-
-            {selectedNode.is_risk_seed && (
-              <div className="flex items-center gap-1.5 p-2 rounded bg-red-950/40 border border-red-800/60 text-red-300">
-                <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
-                <span className="text-[11px] font-medium leading-tight">
-                  Flagged Risk Seed (OFAC / Sanction / Threat Intel)
-                </span>
+              <div>
+                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Entity ID</p>
+                <p className="font-mono text-cyan-300 break-all text-xs select-all mt-0.5 bg-[#080b11] p-1.5 border border-[#1b2333]">
+                  {selectedNode.id}
+                </p>
               </div>
-            )}
 
-            {selectedNode.details && (
-              <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-                <p className="text-[10px] text-slate-400 font-semibold uppercase">Metadata</p>
-                {Object.entries(selectedNode.details).map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-[11px]">
-                    <span className="text-slate-400 capitalize">{k.replace('_', ' ')}:</span>
-                    <span className="text-slate-200 font-mono">{String(v)}</span>
+              <div>
+                <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">Label</p>
+                <p className="font-medium text-slate-200 mt-0.5">{selectedNode.label}</p>
+              </div>
+
+              {selectedNode.is_risk_seed && (
+                <div className="p-2 border border-rose-900/60 bg-rose-950/20 text-rose-300">
+                  <div className="flex items-center gap-1.5 font-bold text-[11px]">
+                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <span>SANCTION / RISK SEED</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                    Flagged in high-risk cluster. Direct interaction creates severe risk attribution.
+                  </p>
+                </div>
+              )}
 
-            <div className="pt-1 flex gap-2">
+              {selectedNode.details && (
+                <div className="border border-[#1b2333] bg-[#080b11] p-2.5 space-y-1.5">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono">Entity Attributes</p>
+                  {Object.entries(selectedNode.details).map(([k, v]) => (
+                    <div key={k} className="flex justify-between text-[11px] font-mono">
+                      <span className="text-slate-400 capitalize">{k.replace('_', ' ')}:</span>
+                      <span className="text-slate-200">{String(v)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[#1b2333]">
               <button
                 onClick={() => {
                   if (onSelectNode) onSelectNode(selectedNode.id);
                 }}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium text-xs transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-cyan-700 hover:bg-cyan-600 text-white font-semibold text-xs transition-colors border border-cyan-500/40"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>Investigate in Depth</span>
+                <span>INVESTIGATE WALLET</span>
               </button>
             </div>
           </div>
@@ -490,33 +501,33 @@ export function GraphExplorer({
       </div>
 
       {/* Legend Footer */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-[#0f172a] border-t border-card-border text-[11px] text-slate-400">
+      <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-[#0d121c] border-t border-[#1b2333] text-[11px] text-slate-400">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-slate-500 uppercase text-[10px] font-semibold">Legend:</span>
+          <span className="text-slate-500 uppercase text-[10px] font-bold">LEGEND:</span>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+            <span className="w-2 h-2 bg-[#38bdf8]" />
             <span>Wallet</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+            <span className="w-2 h-2 bg-[#818cf8]" />
             <span>Funding Source</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-            <span>Autonomous Agent</span>
+            <span className="w-2 h-2 bg-[#94a3b8]" />
+            <span>Agent</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span>Smart Contract</span>
+            <span className="w-2 h-2 bg-[#2dd4bf]" />
+            <span>Contract</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="w-2 h-2 bg-[#f43f5e]" />
             <span>Risk Seed</span>
           </div>
         </div>
 
-        <div className="text-[10px] text-slate-500">
-          Showing {visibleNodes.length} entities • {visibleLinks.length} directed relationships
+        <div className="text-[10px] text-slate-500 font-mono">
+          TOPOLOGY: {visibleNodes.length} VERTICES • {visibleLinks.length} EDGES
         </div>
       </div>
     </div>

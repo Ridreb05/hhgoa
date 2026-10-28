@@ -43,7 +43,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#080b11] flex flex-col font-mono">
       {/* Top Application Header */}
       <Header
         activeTab={activeTab}
@@ -106,17 +106,17 @@ export default function HomePage() {
       </main>
 
       {/* Application Footer */}
-      <footer className="border-t border-card-border bg-[#090d16] py-4 text-xs text-slate-500">
+      <footer className="border-t border-[#1b2333] bg-[#0d121c] py-3 text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-400 font-mono">GHOSTSHIELD</span>
+            <span className="font-bold text-slate-400">GHOSTSHIELD</span>
             <span>•</span>
-            <span>TigerGraph GSQL Engine & Graph Data Science</span>
+            <span>TIGERGRAPH GSQL ENGINE & GRAPH DATA SCIENCE</span>
           </div>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span>Deterministic Risk Policy (0–100)</span>
+          <div className="flex items-center gap-4 text-[10px]">
+            <span>DETERMINISTIC ATTRIBUTION (0–100)</span>
             <span>•</span>
-            <span>Simulated Gatekeeper Decisions (ALLOW / REVIEW / REJECT)</span>
+            <span>GATEKEEPER POLICIES (ALLOW / REVIEW / REJECT)</span>
           </div>
         </div>
       </footer>

@@ -3,28 +3,43 @@
 @tailwind utilities;
 
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
+  --background: #080b11;
+  --foreground: #e2e8f0;
+  --surface: #0d121c;
+  --surface-subtle: #111724;
+  --border: #1b2333;
+  --border-subtle: #141b29;
+  --accent: #0ea5e9;
+  --ink-muted: #64748b;
+  --ink-dim: #475569;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar */
+/* Tabular figures for data integrity */
+.tabular-nums, code, pre, .font-mono {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Hardened Industrial Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: #080b11;
 }
 ::-webkit-scrollbar-thumb {
   background: #1e293b;
-  border-radius: 3px;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #334155;

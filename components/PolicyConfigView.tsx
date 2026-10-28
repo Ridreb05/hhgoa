@@ -92,67 +92,67 @@ export function PolicyConfigView() {
       : 'ALLOW';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 font-mono">
       {/* Top Header */}
-      <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-[#0d121c] border border-[#1b2333] p-4 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-cyan-400" />
-            <span>Risk Policy Engine Customizer</span>
+          <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+            <span>RISK ENGINE WEIGHT & THRESHOLD POLICY</span>
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Fine-tune mathematical signal weights and threshold corridors for simulated transaction authorization.
+          <p className="text-[11px] text-slate-500 mt-0.5 font-sans">
+            Calibrate mathematical signal weights and threshold corridors governing graph-based transaction risk attribution.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs font-mono">
           <button
             onClick={handleExportJSON}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#080b11] hover:bg-[#1e293b] text-slate-300 border border-[#1b2333] font-bold transition-colors"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Policy JSON</span>
+            <Download className="w-3 h-3" />
+            <span>EXPORT JSON</span>
           </button>
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#080b11] hover:bg-[#1e293b] text-slate-300 border border-[#1b2333] font-bold transition-colors"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Defaults</span>
+            <RotateCcw className="w-3 h-3" />
+            <span>RESET</span>
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-700 hover:bg-cyan-600 disabled:opacity-50 text-white font-bold transition-colors border border-cyan-500/50"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isSaving ? 'Saving...' : 'Apply & Save Policy'}</span>
+            <Save className="w-3 h-3" />
+            <span>{isSaving ? 'SAVING...' : 'APPLY POLICY'}</span>
           </button>
         </div>
       </div>
 
       {savedMessage && (
-        <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-          <Check className="w-4 h-4 shrink-0" />
+        <div className="p-2.5 bg-emerald-950/20 border border-emerald-500/40 text-xs text-emerald-300 flex items-center gap-2 font-mono">
+          <Check className="w-3.5 h-3.5 shrink-0" />
           <span>{savedMessage}</span>
         </div>
       )}
 
       {/* Main Grid: Sliders & Live Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Sliders Column (2 cols) */}
-        <div className="lg:col-span-2 bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-6">
-          <h3 className="text-xs font-semibold text-white uppercase tracking-wider border-b border-card-border pb-2">
-            Signal Weight Allocations (Max 100 points total)
+        <div className="lg:col-span-2 bg-[#0d121c] border border-[#1b2333] p-4 space-y-4">
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-[#1b2333] pb-2">
+            SIGNAL WEIGHT ATTRIBUTIONS (MAX 100 PTS)
           </h3>
 
           {/* Slider 1: Cycle */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-200">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="font-medium text-slate-300">
                 1. Rapid Circular Transfer Window (Default: 40 pts)
               </span>
-              <span className="font-mono font-bold text-cyan-400">
+              <span className="font-bold text-cyan-400">
                 {config.temporalCycleMaxPoints} pts
               </span>
             </div>
@@ -162,20 +162,20 @@ export function PolicyConfigView() {
               max="50"
               value={config.temporalCycleMaxPoints}
               onChange={(e) => handleChange('temporalCycleMaxPoints', parseInt(e.target.value, 10))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-cyan-500"
             />
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 font-sans">
               Allocated when transfers form a closed directed loop within the temporal limit (600s).
             </p>
           </div>
 
           {/* Slider 2: Volume Retention */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-200">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="font-medium text-slate-300">
                 2. Capital Conservation & Volume Retention (Default: 15 pts)
               </span>
-              <span className="font-mono font-bold text-cyan-400">
+              <span className="font-bold text-cyan-400">
                 {config.volumeRetentionMaxPoints} pts
               </span>
             </div>
@@ -185,20 +185,20 @@ export function PolicyConfigView() {
               max="30"
               value={config.volumeRetentionMaxPoints}
               onChange={(e) => handleChange('volumeRetentionMaxPoints', parseInt(e.target.value, 10))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-cyan-500"
             />
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 font-sans">
               Allocated when capital conservation across the cycle exceeds 85%.
             </p>
           </div>
 
           {/* Slider 3: Shared Funding */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-200">
-                3. Shared Upstream Mixer / Obfuscation Funding (Default: 20 pts)
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="font-medium text-slate-300">
+                3. Shared Upstream Obfuscation Funding (Default: 20 pts)
               </span>
-              <span className="font-mono font-bold text-cyan-400">
+              <span className="font-bold text-cyan-400">
                 {config.sharedFundingMaxPoints} pts
               </span>
             </div>
@@ -208,20 +208,20 @@ export function PolicyConfigView() {
               max="35"
               value={config.sharedFundingMaxPoints}
               onChange={(e) => handleChange('sharedFundingMaxPoints', parseInt(e.target.value, 10))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-cyan-500"
             />
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 font-sans">
               Allocated when counterparts share upstream liquidity from sanctioned mixers or bridges.
             </p>
           </div>
 
           {/* Slider 4: Risk Seed Exposure */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-200">
-                4. Proximity to Known Exploit / Sanctions Seed (Default: 45 pts)
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="font-medium text-slate-300">
+                4. Proximity to Sanctions / Exploit Seed (Default: 45 pts)
               </span>
-              <span className="font-mono font-bold text-cyan-400">
+              <span className="font-bold text-cyan-400">
                 {config.riskSeedExposureMaxPoints} pts
               </span>
             </div>
@@ -231,20 +231,20 @@ export function PolicyConfigView() {
               max="60"
               value={config.riskSeedExposureMaxPoints}
               onChange={(e) => handleChange('riskSeedExposureMaxPoints', parseInt(e.target.value, 10))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-cyan-500"
             />
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 font-sans">
               Allocated when direct transfer connects to an active threat intelligence seed.
             </p>
           </div>
 
           {/* Slider 5: Agent Delegation */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-medium text-slate-200">
-                5. Multi-Tier Autonomous Agent Delegation (Default: 10 pts)
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs font-mono">
+              <span className="font-medium text-slate-300">
+                5. Multi-Tier Agent Delegation (Default: 10 pts)
               </span>
-              <span className="font-mono font-bold text-cyan-400">
+              <span className="font-bold text-cyan-400">
                 {config.agentDelegationMaxPoints} pts
               </span>
             </div>
@@ -254,23 +254,23 @@ export function PolicyConfigView() {
               max="20"
               value={config.agentDelegationMaxPoints}
               onChange={(e) => handleChange('agentDelegationMaxPoints', parseInt(e.target.value, 10))}
-              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-cyan-500"
             />
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-slate-500 font-sans">
               Allocated when wallet execution authority is controlled via autonomous solver hierarchies.
             </p>
           </div>
 
           {/* Decision Thresholds Section */}
-          <h3 className="text-xs font-semibold text-white uppercase tracking-wider border-b border-card-border pb-2 pt-2">
-            Authorization Decision Thresholds
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-[#1b2333] pb-2 pt-2">
+            DECISION THRESHOLDS
           </h3>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-2 gap-4 font-mono">
+            <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-300">Allow Cap (≤ Score)</span>
-                <span className="font-mono font-bold text-emerald-400">{config.allowThreshold}</span>
+                <span className="text-slate-400">Allow Cap (≤ Score)</span>
+                <span className="font-bold text-emerald-400">{config.allowThreshold}</span>
               </div>
               <input
                 type="range"
@@ -278,14 +278,14 @@ export function PolicyConfigView() {
                 max="45"
                 value={config.allowThreshold}
                 onChange={(e) => handleChange('allowThreshold', parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-emerald-500"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-300">Reject Floor (≥ Score)</span>
-                <span className="font-mono font-bold text-red-400">{config.rejectThreshold}</span>
+                <span className="text-slate-400">Reject Floor (≥ Score)</span>
+                <span className="font-bold text-rose-400">{config.rejectThreshold}</span>
               </div>
               <input
                 type="range"
@@ -293,69 +293,69 @@ export function PolicyConfigView() {
                 max="85"
                 value={config.rejectThreshold}
                 onChange={(e) => handleChange('rejectThreshold', parseInt(e.target.value, 10))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                className="w-full h-1 bg-[#1b2333] appearance-none cursor-pointer accent-rose-500"
               />
             </div>
           </div>
         </div>
 
         {/* Live Simulation Preview Column (1 col) */}
-        <div className="bg-[#0f172a] border border-card-border rounded-xl p-5 space-y-5 flex flex-col justify-between">
+        <div className="bg-[#0d121c] border border-[#1b2333] p-4 space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider border-b border-card-border pb-2 flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider border-b border-[#1b2333] pb-2 flex items-center gap-1.5">
               <Play className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Live Policy Impact Preview</span>
+              <span>LIVE POLICY PREVIEW</span>
             </h3>
 
-            <div className="space-y-4 mt-4">
+            <div className="space-y-3 mt-3">
               {/* Scenario A Impact */}
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div className="bg-[#080b11] border border-[#1b2333] p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white">Scenario A (Cycle + Mixer)</span>
+                  <span className="text-xs font-bold text-white">Scenario A (Cycle + Mixer)</span>
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    className={`px-1.5 py-0.2 text-[9px] font-bold border ${
                       scenarioADecision === 'REJECT'
-                        ? 'bg-red-500/20 text-red-300 border border-red-500/40'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        ? 'bg-rose-950/20 text-rose-300 border-rose-500/40'
+                        : 'bg-amber-950/20 text-amber-300 border-amber-500/40'
                     }`}
                   >
                     {scenarioADecision}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-slate-400">Simulated Score:</span>
-                  <span className="text-xl font-bold font-mono text-red-400">
+                  <span className="text-slate-500 text-[10px] uppercase">SCORE:</span>
+                  <span className="text-lg font-bold font-mono text-rose-400">
                     {simulatedScenarioAScore} / 100
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500">
-                  Calculated from: Cycle ({config.temporalCycleMaxPoints}) + Retention ({config.volumeRetentionMaxPoints}) + Mixer ({config.sharedFundingMaxPoints}) + Agent ({config.agentDelegationMaxPoints})
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Cycle ({config.temporalCycleMaxPoints}) + Vol ({config.volumeRetentionMaxPoints}) + Mix ({config.sharedFundingMaxPoints}) + Agent ({config.agentDelegationMaxPoints})
                 </p>
               </div>
 
               {/* Scenario B Impact */}
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-3.5 space-y-2">
+              <div className="bg-[#080b11] border border-[#1b2333] p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-white">Scenario B (Normal Transfer)</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="text-xs font-bold text-white">Scenario B (Clean Transfer)</span>
+                  <span className="px-1.5 py-0.2 text-[9px] font-bold bg-emerald-950/20 text-emerald-300 border border-emerald-500/40">
                     ALLOW
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-slate-400">Simulated Score:</span>
-                  <span className="text-xl font-bold font-mono text-emerald-400">
+                  <span className="text-slate-500 text-[10px] uppercase">SCORE:</span>
+                  <span className="text-lg font-bold font-mono text-emerald-400">
                     {simulatedScenarioBScore} / 100
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500">
-                  Clean baseline retains allowable status under configured thresholds.
+                <p className="text-[10px] text-slate-500 font-sans">
+                  Clean baseline remains allowable under current policy bounds.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#0b1120] p-3 rounded-lg border border-slate-800 text-[11px] text-slate-400">
-            <span className="font-semibold text-slate-300">Policy Auditing Note:</span> Modifications saved here immediately take effect across both TigerGraph Cloud and Demo query paths.
+          <div className="bg-[#080b11] p-2.5 border border-[#1b2333] text-[10px] text-slate-500 font-sans">
+            <span className="font-bold text-slate-400">Policy Note:</span> Adjustments propagate dynamically across both TigerGraph Cloud and Demo query paths.
           </div>
         </div>
       </div>
