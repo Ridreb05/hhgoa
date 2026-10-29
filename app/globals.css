@@ -67,26 +67,27 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* Financial Control Styles */
+/* Button styles: Precision high-density control surfaces */
 .btn-financial-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   background-color: var(--dp-color-accent);
-  color: var(--dp-color-ground);
-  font-family: var(--dp-typography-body-face);
+  color: #07090e;
+  font-family: var(--dp-typography-data-face);
   font-weight: 600;
   border-radius: var(--dp-radius-control);
-  padding: 0.5rem 1.25rem;
-  font-size: 0.8125rem;
-  letter-spacing: 0.01em;
-  transition: all var(--dp-motion-interaction) var(--dp-motion-easing);
-  border: 1px solid transparent;
+  padding: 0.45rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: background-color var(--dp-motion-interaction) var(--dp-motion-easing), border-color var(--dp-motion-interaction) var(--dp-motion-easing);
+  border: 1px solid var(--dp-color-accent);
 }
 .btn-financial-primary:hover {
   background-color: #f0830c;
-  box-shadow: 0 0 16px rgba(255, 149, 31, 0.28);
+  border-color: #f0830c;
 }
 .btn-financial-primary:focus-visible {
   outline: 2px solid var(--dp-color-accent);
@@ -101,66 +102,23 @@ body {
   background-color: var(--dp-color-panel);
   color: var(--dp-color-ink);
   border: var(--dp-border-hairline) solid var(--dp-color-line);
-  font-family: var(--dp-typography-body-face);
+  font-family: var(--dp-typography-data-face);
   font-weight: 500;
   border-radius: var(--dp-radius-control);
-  padding: 0.5rem 1.125rem;
-  font-size: 0.8125rem;
-  transition: all var(--dp-motion-interaction) var(--dp-motion-easing);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  transition: background-color var(--dp-motion-interaction) var(--dp-motion-easing), border-color var(--dp-motion-interaction) var(--dp-motion-easing), color var(--dp-motion-interaction) var(--dp-motion-easing);
 }
 .btn-financial-secondary:hover {
   border-color: var(--dp-color-ink-muted);
-  background-color: #141923;
+  background-color: #161b26;
   color: #ffffff;
 }
 .btn-financial-secondary:focus-visible {
   outline: 2px solid var(--dp-color-accent);
   outline-offset: 2px;
-}
-
-/* Framed Value / Product Object with thin offset outlines */
-.framed-object-container {
-  position: relative;
-}
-.framed-object-outline-2 {
-  position: absolute;
-  inset: -8px -8px 8px 8px;
-  border: 1px solid rgba(48, 49, 57, 0.5);
-  border-radius: var(--dp-radius-panel);
-  pointer-events: none;
-  z-index: 1;
-}
-.framed-object-outline-1 {
-  position: absolute;
-  inset: -4px -4px 4px 4px;
-  border: 1px solid rgba(48, 49, 57, 0.9);
-  border-radius: var(--dp-radius-panel);
-  pointer-events: none;
-  z-index: 2;
-}
-.framed-object-panel {
-  position: relative;
-  z-index: 3;
-  background: var(--dp-color-panel);
-  border: var(--dp-border-hairline) solid var(--dp-color-line);
-  border-radius: var(--dp-radius-panel);
-}
-
-/* Warm soft glow for hero and closing areas */
-.warm-light-hero {
-  position: absolute;
-  top: 50%;
-  right: 15%;
-  transform: translate(50%, -50%);
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle, rgba(255, 149, 31, 0.08) 0%, rgba(237, 205, 140, 0.02) 45%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.warm-light-closing {
-  background: radial-gradient(ellipse at 50% 100%, rgba(255, 149, 31, 0.12) 0%, rgba(16, 21, 34, 0.6) 50%, transparent 80%);
 }
 
 /* Keyboard accessibility focus rings */

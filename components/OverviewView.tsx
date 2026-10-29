@@ -1,22 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { DashboardMetrics } from '@/lib/graph/types';
 import demoData from '@/data/demo/entities.json';
 import {
   Cpu,
   Clock,
-  ExternalLink,
-  ChevronRight,
   Play,
-  Activity,
   Layers,
   ArrowRight,
-  Shield,
+  ShieldAlert,
+  ShieldCheck,
   CheckCircle2,
-  GitCommit,
-  Share2,
-  Sparkles,
+  ExternalLink,
+  Search,
+  Filter,
+  Eye,
+  GitBranch,
 } from 'lucide-react';
 
 interface OverviewViewProps {
@@ -26,331 +26,276 @@ interface OverviewViewProps {
 }
 
 export function OverviewView({ metrics, onSelectScenario, onNavigateTab }: OverviewViewProps) {
+  const [quickWallet, setQuickWallet] = useState<string>('0x71c6bf5e2a3b1a8d00921471b045112sus1');
+
+  const handleQuickInvestigate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (quickWallet.trim()) {
+      onNavigateTab('investigate');
+    }
+  };
+
   return (
-    <div className="space-y-8 font-sans">
-      {/* 1. HERO SECTION: Broad promise on left, framed value object on right */}
-      <div className="relative pt-2 pb-4">
-        {/* Warm light concentrated softly behind the hero object */}
-        <div className="warm-light-hero hidden md:block" />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-          {/* Left: Broad promise & paired introductory prose */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[40px] bg-[#101522] border border-[#303139] text-[#edcd8c] text-[11px] font-mono tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#ff951f]" />
-              <span>TIGERGRAPH 3.x GSQL & GRAPH DATA SCIENCE</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-[#f4f5f7] leading-[1.08]">
-              Deterministic Graph Risk Intelligence.
+    <div className="space-y-6 font-sans">
+      {/* 1. OPERATIONAL COMMAND HEADER & TARGET LOOKUP */}
+      <div className="financial-panel p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#ff951f]" />
+            <h1 className="text-sm font-semibold tracking-tight text-[#f4f5f7] uppercase font-mono">
+              GhostShield Graph Forensics Console
             </h1>
-
-            <p className="text-[#c9ced8] text-sm sm:text-base leading-[1.65] max-w-2xl font-sans">
-              Individual wallet transfers often appear benign in isolation while coordinating multi-entity exploits. 
-              GhostShield traverses transaction cycles, upstream obfuscation sources, and autonomous agent delegations 
-              in TigerGraph to return transparent, explainable risk assessments.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                onClick={() => onNavigateTab('simulator')}
-                className="btn-financial-primary"
-              >
-                <span>Simulate Candidate Transaction</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                onClick={() => onNavigateTab('graph')}
-                className="btn-financial-secondary"
-              >
-                <span>Explore Topology Graph</span>
-              </button>
-            </div>
+            <span className="text-[11px] font-mono text-[#edcd8c] bg-[#07090e] px-2 py-0.5 border border-[#303139] rounded">
+              TigerGraph GSQL 3.x
+            </span>
           </div>
-
-          {/* Right: Framed value/product object with thin offset outlines suggesting depth */}
-          <div className="lg:col-span-5 relative mt-4 lg:mt-0">
-            <div className="framed-object-container max-w-md mx-auto lg:mr-0">
-              {/* Outer thin offset outline 2 */}
-              <div className="framed-object-outline-2 hidden sm:block" />
-              {/* Middle thin offset outline 1 */}
-              <div className="framed-object-outline-1 hidden sm:block" />
-
-              {/* Main Opaque Panel */}
-              <div className="framed-object-panel p-5 sm:p-6 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-[#303139] pb-3">
-                  <div className="flex items-center gap-2 font-mono text-[11px] text-[#c9ced8]">
-                    <Shield className="w-4 h-4 text-[#ff951f]" />
-                    <span className="uppercase tracking-wider">VERIFIED BENCHMARK</span>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-[40px] bg-[#101522] border border-[#303139] text-[#34d399] font-mono text-[10px] font-bold">
-                    100% RECALL
-                  </span>
-                </div>
-
-                {/* Real Value in large pale gold type with monospaced tabular setting */}
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-4xl sm:text-5xl font-bold text-[#edcd8c] tabular-nums tracking-tight">
-                      100.0%
-                    </span>
-                    <span className="font-mono text-xs text-[#c9ced8]">F1 SCORE</span>
-                  </div>
-                  <p className="text-[12px] text-[#c9ced8] font-sans">
-                    Deterministic detection accuracy verified against 5 ground-truth scenario fixtures.
-                  </p>
-                </div>
-
-                {/* Subordinate Fact Rows */}
-                <div className="border-t border-[#303139] pt-3 space-y-2 text-xs font-mono">
-                  <div className="flex justify-between items-center text-[#c9ced8]">
-                    <span>Graph Engine</span>
-                    <span className="text-[#f4f5f7] font-medium">TigerGraph Cloud GSQL</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[#c9ced8]">
-                    <span>Query Latency</span>
-                    <span className="text-[#edcd8c] font-bold tabular-nums">
-                      {metrics ? `${metrics.query_latency_ms} ms` : '2 ms'} RTT
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-[#c9ced8]">
-                    <span>Threat Attribution</span>
-                    <span className="text-[#f4f5f7]">Temporal Cycles & Mixers</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="text-xs text-[#c9ced8] font-sans">
+            Deterministic graph traversal isolating circular transfers, shared obfuscation funding, and autonomous agent hierarchies.
+          </p>
         </div>
+
+        {/* Direct Target Investigation Input */}
+        <form onSubmit={handleQuickInvestigate} className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-80">
+            <Search className="w-3.5 h-3.5 text-[#c9ced8]/60 absolute left-2.5 top-2.5" />
+            <input
+              type="text"
+              value={quickWallet}
+              onChange={(e) => setQuickWallet(e.target.value)}
+              placeholder="Target wallet address..."
+              className="w-full bg-[#07090e] border border-[#303139] rounded-[4px] pl-8 pr-3 py-1.5 text-xs text-[#f4f5f7] font-mono placeholder-[#c9ced8]/40 focus:outline-none focus:border-[#ff951f]"
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-financial-primary shrink-0"
+          >
+            <span>Triage</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        </form>
       </div>
 
-      {/* 2. RULED STRIP OF SUPPORTING FACTS */}
+      {/* 2. LIVE GRAPH TELEMETRY INSTRUMENT STRIP */}
       <div className="financial-panel overflow-hidden">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#303139]">
-          <div className="p-4 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#c9ced8] block">
+          <div className="p-3.5 space-y-0.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#c9ced8] block">
               Indexed Wallets
             </span>
-            <span className="text-2xl font-mono font-bold text-[#edcd8c] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#edcd8c] tabular-nums block">
               {metrics ? metrics.total_wallets : '12'}
             </span>
-            <span className="text-[11px] font-mono text-[#c9ced8]/70">Keypair vertices</span>
+            <span className="text-[10px] font-mono text-[#c9ced8]/70">Keypair vertices</span>
           </div>
 
-          <div className="p-4 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#c9ced8] block">
+          <div className="p-3.5 space-y-0.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#c9ced8] block">
               P2P Transfers
             </span>
-            <span className="text-2xl font-mono font-bold text-[#edcd8c] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#edcd8c] tabular-nums block">
               {metrics ? metrics.total_transfers : '14'}
             </span>
-            <span className="text-[11px] font-mono text-[#c9ced8]/70">Directed edges</span>
+            <span className="text-[10px] font-mono text-[#c9ced8]/70">Directed edges</span>
           </div>
 
-          <div className="p-4 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#c9ced8] block">
+          <div className="p-3.5 space-y-0.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#c9ced8] block">
               Traversed Volume
             </span>
-            <span className="text-2xl font-mono font-bold text-[#edcd8c] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#edcd8c] tabular-nums block">
               {metrics ? `${metrics.total_transfer_volume}` : '127.4'}{' '}
               <span className="text-xs font-normal text-[#c9ced8]">ETH</span>
             </span>
-            <span className="text-[11px] font-mono text-[#c9ced8]/70">On-chain value</span>
+            <span className="text-[10px] font-mono text-[#c9ced8]/70">On-chain value</span>
           </div>
 
-          <div className="p-4 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#c9ced8] block">
-              Funding Roots
+          <div className="p-3.5 space-y-0.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#c9ced8] block">
+              Funding Origins
             </span>
-            <span className="text-2xl font-mono font-bold text-[#edcd8c] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#edcd8c] tabular-nums block">
               {metrics ? metrics.total_funding_sources : '3'}
             </span>
-            <span className="text-[11px] font-mono text-[#c9ced8]/70">Mixers & exchanges</span>
+            <span className="text-[10px] font-mono text-[#c9ced8]/70">Mixers & CEX roots</span>
           </div>
 
-          <div className="p-4 space-y-1">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#c9ced8] block">
+          <div className="p-3.5 space-y-0.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#c9ced8] block">
               Active Agents
             </span>
-            <span className="text-2xl font-mono font-bold text-[#edcd8c] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#edcd8c] tabular-nums block">
               {metrics ? metrics.total_agents : '3'}
             </span>
-            <span className="text-[11px] font-mono text-[#c9ced8]/70">Autonomous solvers</span>
+            <span className="text-[10px] font-mono text-[#c9ced8]/70">Autonomous solvers</span>
           </div>
 
-          <div className="p-4 space-y-1 bg-[#101522]">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-[#ff951f] block">
-              Risk Seeds
+          <div className="p-3.5 space-y-0.5 bg-[#07090e]">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#ff951f] block">
+              Flagged Risk Seeds
             </span>
-            <span className="text-2xl font-mono font-bold text-[#ff951f] tabular-nums block">
+            <span className="text-xl font-mono font-bold text-[#ff951f] tabular-nums block">
               {metrics ? metrics.risk_seed_wallets : '2'}
             </span>
-            <span className="text-[11px] font-mono text-[#ff951f]/70">Sanctioned entities</span>
+            <span className="text-[10px] font-mono text-[#ff951f]/80">Sanctioned entities</span>
           </div>
         </div>
       </div>
 
-      {/* 3. CONNECTED PROCESS ROW */}
-      <div className="financial-panel p-5 space-y-3">
-        <div className="flex items-center justify-between border-b border-[#303139] pb-2.5">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#f4f5f7] flex items-center gap-2">
-            <GitCommit className="w-3.5 h-3.5 text-[#ff951f]" />
-            <span>Detection Workflow Pipeline</span>
-          </span>
-          <span className="text-[11px] font-mono text-[#c9ced8]">
-            Bounded GSQL Multi-Hop (k=2..5)
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#edcd8c]">
-              <span className="w-5 h-5 rounded-[40px] bg-[#101522] border border-[#303139] flex items-center justify-center font-bold text-[10px]">
-                01
+      {/* 3. CORE OPERATIONAL GRID (BENCHMARK SUITE + ACTIVE THREAT REGISTER) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Ground-Truth Scenario Benchmark Suite (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#f4f5f7]">
+                Ground-Truth Scenario Suite
+              </h2>
+              <span className="px-2 py-0.5 rounded-[40px] bg-[#07090e] border border-[#303139] text-[#edcd8c] font-mono text-[10px] font-bold">
+                100% BENCHMARK ACCURACY
               </span>
-              <span className="font-semibold text-[#f4f5f7]">Graph Ingestion</span>
             </div>
-            <p className="text-xs text-[#c9ced8] leading-relaxed font-sans pl-7">
-              Heterogeneous mapping of wallets, transfers, funding sources, and autonomous agents.
-            </p>
+            <button
+              onClick={() => onNavigateTab('simulator')}
+              className="text-xs font-mono text-[#ff951f] hover:underline flex items-center gap-1"
+            >
+              <span>Simulator</span>
+              <ExternalLink className="w-3 h-3" />
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#edcd8c]">
-              <span className="w-5 h-5 rounded-[40px] bg-[#101522] border border-[#303139] flex items-center justify-center font-bold text-[10px]">
-                02
-              </span>
-              <span className="font-semibold text-[#f4f5f7]">Topological Traversal</span>
-            </div>
-            <p className="text-xs text-[#c9ced8] leading-relaxed font-sans pl-7">
-              GSQL queries isolate rapid circular wash trading loops and shared obfuscation roots.
-            </p>
-          </div>
+          <div className="space-y-3">
+            {demoData.scenarios.map((sc) => {
+              const isReject = sc.expected_classification === 'REJECT';
+              const isReview = sc.expected_classification === 'REVIEW';
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#edcd8c]">
-              <span className="w-5 h-5 rounded-[40px] bg-[#101522] border border-[#303139] flex items-center justify-center font-bold text-[10px]">
-                03
-              </span>
-              <span className="font-semibold text-[#f4f5f7]">Deterministic Scoring</span>
-            </div>
-            <p className="text-xs text-[#c9ced8] leading-relaxed font-sans pl-7">
-              Point-based attribution (0–100) assigning mathematical evidence without opaque black-boxes.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#edcd8c]">
-              <span className="w-5 h-5 rounded-[40px] bg-[#101522] border border-[#303139] flex items-center justify-center font-bold text-[10px]">
-                04
-              </span>
-              <span className="font-semibold text-[#f4f5f7]">Forensic Dispatch</span>
-            </div>
-            <p className="text-xs text-[#c9ced8] leading-relaxed font-sans pl-7">
-              Synthesizes natural language dossiers and triggers automated webhooks via viaSocket.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. THREE-COLUMN CAPABILITY & GROUND TRUTH MATRIX */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-sans font-semibold text-[#f4f5f7] tracking-tight">
-              Ground-Truth Verification Scenarios
-            </h3>
-            <p className="text-xs text-[#c9ced8] mt-0.5">
-              Deterministic test cases validating cyclic detection, shared liquidity origins, and risk seed proximity.
-            </p>
-          </div>
-          <button
-            onClick={() => onNavigateTab('simulator')}
-            className="text-xs font-sans text-[#ff951f] hover:text-[#f0830c] flex items-center gap-1 transition-all duration-[160ms] ease-out font-medium"
-          >
-            <span>Open Simulation Console</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {demoData.scenarios.map((sc) => {
-            const isReject = sc.expected_classification === 'REJECT';
-            const isReview = sc.expected_classification === 'REVIEW';
-
-            return (
-              <div
-                key={sc.id}
-                className="financial-panel p-5 flex flex-col justify-between hover:border-[#c9ced8]/40 transition-all duration-[160ms] ease-out"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span
-                      className={`px-2 py-0.5 rounded-[40px] text-[10px] font-mono font-bold uppercase tracking-wider border ${
-                        isReject
-                          ? 'bg-[#101522] text-[#f43f5e] border-[#f43f5e]/40'
-                          : isReview
-                          ? 'bg-[#101522] text-[#ff951f] border-[#ff951f]/40'
-                          : 'bg-[#101522] text-[#34d399] border-[#34d399]/40'
-                      }`}
-                    >
-                      {sc.expected_classification}
-                    </span>
-                    <span className="text-[11px] font-mono text-[#c9ced8]">
-                      {sc.target_wallet}
-                    </span>
+              return (
+                <div
+                  key={sc.id}
+                  className="financial-panel p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#c9ced8]/40 transition-colors"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border ${
+                          isReject
+                            ? 'bg-rose-950/30 text-rose-300 border-rose-500/40'
+                            : isReview
+                            ? 'bg-amber-950/30 text-amber-300 border-amber-500/40'
+                            : 'bg-emerald-950/30 text-emerald-300 border-emerald-500/40'
+                        }`}
+                      >
+                        {sc.expected_classification}
+                      </span>
+                      <span className="text-xs font-mono font-medium text-[#f4f5f7] truncate">
+                        {sc.name}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#c9ced8] font-sans line-clamp-1">
+                      {sc.description}
+                    </p>
+                    <div className="flex items-center gap-3 text-[10px] font-mono text-[#c9ced8]/70">
+                      <span>Target: {sc.target_wallet}</span>
+                      <span>•</span>
+                      <span className="text-[#edcd8c]">
+                        {isReject ? 'Score ≥ 65' : isReview ? 'Score 35–64' : 'Score ≤ 34'}
+                      </span>
+                    </div>
                   </div>
 
-                  <h4 className="font-sans text-sm font-semibold text-[#f4f5f7] leading-snug">
-                    {sc.name}
-                  </h4>
-                  <p className="text-xs text-[#c9ced8] mt-2 leading-relaxed font-sans line-clamp-3">
-                    {sc.description}
-                  </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => onSelectScenario(sc.id)}
+                      className="btn-financial-secondary py-1 px-3 text-xs"
+                    >
+                      <Play className="w-2.5 h-2.5 fill-current text-[#edcd8c]" />
+                      <span>Run Test</span>
+                    </button>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
 
-                <div className="mt-4 pt-3 border-t border-[#303139] flex items-center justify-between text-xs font-mono">
-                  <span className="text-[11px] text-[#edcd8c] font-medium">
-                    {isReject ? 'Threshold: Score ≥ 65' : 'Threshold: Score ≤ 34'}
-                  </span>
-                  <button
-                    onClick={() => onSelectScenario(sc.id)}
-                    className="btn-financial-secondary text-xs py-1 px-3"
-                  >
-                    <Play className="w-2.5 h-2.5 fill-current" />
-                    <span>Run Verification</span>
-                  </button>
+        {/* Right Column: Live Graph Threat Register & Topological Parameters (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-[#f4f5f7] flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 text-[#ff951f]" />
+              <span>Suspect Threat Register</span>
+            </h2>
+            <button
+              onClick={() => onNavigateTab('graph')}
+              className="text-xs font-mono text-[#ff951f] hover:underline flex items-center gap-1"
+            >
+              <span>Explore Graph</span>
+              <Layers className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="financial-panel p-4 space-y-3 font-mono">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-2 bg-[#07090e] border border-[#303139] rounded text-xs">
+                <div>
+                  <span className="text-[#f4f5f7] font-semibold block text-[11px]">0x71c...sus1</span>
+                  <span className="text-[10px] text-rose-400">Rapid Circular Wash Cycle (k=3)</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-rose-400 tabular-nums">85 / 100</span>
+                  <span className="text-[9px] uppercase tracking-wider block text-rose-400/80">REJECT</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* 5. CLOSING AREA: Dark tinted field with warm light beneath the actions */}
-      <div className="relative rounded-[5px] overflow-hidden border border-[#303139] bg-[#101522] warm-light-closing p-6 sm:p-8 text-center space-y-3">
-        <h3 className="text-xl sm:text-2xl font-medium tracking-tight text-[#f4f5f7]">
-          Evaluate Transaction Risk in Real Time
-        </h3>
-        <p className="text-xs sm:text-sm text-[#c9ced8] max-w-xl mx-auto leading-relaxed">
-          Submit any candidate transaction to execute instant multi-hop GSQL graph queries, 
-          quantify capital retention, and inspect contributing risk evidence.
-        </p>
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-          <button
-            onClick={() => onNavigateTab('simulator')}
-            className="btn-financial-primary"
-          >
-            <span>Launch Pre-Flight Simulator</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onNavigateTab('clusters')}
-            className="btn-financial-secondary"
-          >
-            <span>Inspect Sybil Clusters</span>
-          </button>
+              <div className="flex items-center justify-between p-2 bg-[#07090e] border border-[#303139] rounded text-xs">
+                <div>
+                  <span className="text-[#f4f5f7] font-semibold block text-[11px]">0x82d...sus2</span>
+                  <span className="text-[10px] text-rose-400">Mixer Liquidity & Loop Counterparty</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-rose-400 tabular-nums">85 / 100</span>
+                  <span className="text-[9px] uppercase tracking-wider block text-rose-400/80">REJECT</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-2 bg-[#07090e] border border-[#303139] rounded text-xs">
+                <div>
+                  <span className="text-[#f4f5f7] font-semibold block text-[11px]">0xd4f...seed1</span>
+                  <span className="text-[10px] text-amber-400">Direct Sanctions Seed Proximity</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-amber-400 tabular-nums">60 / 100</span>
+                  <span className="text-[9px] uppercase tracking-wider block text-amber-400/80">REVIEW</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-2 bg-[#07090e] border border-[#303139] rounded text-xs">
+                <div>
+                  <span className="text-[#f4f5f7] font-semibold block text-[11px]">0x10a...alice</span>
+                  <span className="text-[10px] text-emerald-400">Ordinary Benign P2P Liquidity</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-emerald-400 tabular-nums">17 / 100</span>
+                  <span className="text-[9px] uppercase tracking-wider block text-emerald-400/80">ALLOW</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#303139] pt-3 space-y-1.5 text-[11px] text-[#c9ced8]">
+              <div className="flex justify-between">
+                <span>Traversal Depth Corridor:</span>
+                <span className="text-[#edcd8c]">k = 2 to 5 hops</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Cycle Time Window:</span>
+                <span className="text-[#edcd8c]">Δt ≤ 600 seconds</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Conservation Floor:</span>
+                <span className="text-[#edcd8c]">Volume &ge; 85%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
