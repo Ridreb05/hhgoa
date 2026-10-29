@@ -1,13 +1,11 @@
 // ==============================================================================
 // GSQL Query B: ghostshield_detect_cycles
-// Bounded directed transaction cycle detection with explicit temporal analysis
-// and volume retention calculation.
+// Pure GSQL v1 standard hop-by-hop cycle detection
 // ==============================================================================
 
 USE GRAPH GhostShieldGraph
-DROP QUERY ghostshield_detect_cycles
 
-CREATE QUERY ghostshield_detect_cycles(
+CREATE OR REPLACE QUERY ghostshield_detect_cycles(
     INT time_window_seconds = 600,
     INT max_depth = 4,
     INT result_limit = 50
@@ -26,104 +24,34 @@ CREATE QUERY ghostshield_detect_cycles(
     > CycleRecord;
 
     ListAccum<CycleRecord> @@detected_cycles;
-    SetAccum<STRING> @@seen_cycle_fingerprints;
+    MapAccum<VERTEX<Wallet>, INT> @start_times;
 
-    // --------------------------------------------------------------------------
-    // 1. Detect 3-hop cycles: W1 -> W2 -> W3 -> W1
-    // --------------------------------------------------------------------------
-    Hop1 = SELECT tgt FROM Wallet:src -(TRANSFERRED_TO:e1)-> Wallet:tgt
-           WHERE src.id != tgt.id;
+    // Hop 1: Wallet -> Counterparty
+    H1 = SELECT tgt FROM Wallet:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+         ACCUM tgt.@start_times += (src -> e.event_timestamp);
 
-    // Hop 2 & Hop 3 verification
-    C3 = SELECT w1 FROM Wallet:w1 -(TRANSFERRED_TO:e1)-> Wallet:w2,
-                       Wallet:w2_alias -(TRANSFERRED_TO:e2)-> Wallet:w3,
-                       Wallet:w3_alias -(TRANSFERRED_TO:e3)-> Wallet:w1_alias
-         WHERE w2 == w2_alias 
-           AND w3 == w3_alias 
-           AND w1 == w1_alias
-           AND w1.id != w2.id 
-           AND w2.id != w3.id 
-           AND w1.id != w3.id
-           // Canonical ordering to eliminate cyclic permutations (e.g. A->B->C is same as B->C->A)
-           AND w1.id < w2.id 
-           AND w1.id < w3.id
+    // Hop 2: Counterparty -> Intermediate
+    H2 = SELECT tgt FROM H1:src -(TRANSFERRED_TO:e)-> Wallet:tgt;
+
+    // Hop 3: Intermediate -> Original Sender (Cycle completed)
+    H3 = SELECT tgt FROM H2:src -(TRANSFERRED_TO:e)-> Wallet:tgt
          ACCUM
-             INT min_t = min(e1.event_timestamp, min(e2.event_timestamp, e3.event_timestamp)),
-             INT max_t = max(e1.event_timestamp, max(e2.event_timestamp, e3.event_timestamp)),
-             INT dur = max_t - min_t,
-             DOUBLE min_amt = min(e1.amount, min(e2.amount, e3.amount)),
-             DOUBLE max_amt = max(e1.amount, max(e2.amount, e3.amount)),
-             DOUBLE ret = CASE WHEN max_amt > 0 THEN (min_amt / max_amt) ELSE 0.0 END,
-             BOOL is_valid = (dur <= time_window_seconds AND e1.event_timestamp <= e2.event_timestamp AND e2.event_timestamp <= e3.event_timestamp),
-             STRING path_str = w1.id + " -> " + w2.id + " -> " + w3.id + " -> " + w1.id,
-             STRING risk = CASE 
-                 WHEN is_valid AND ret >= 0.85 THEN "HIGH"
-                 WHEN is_valid THEN "MEDIUM"
-                 ELSE "LOW_TOPOLOGICAL_ONLY"
-             END
-         POST-ACCUM
-             IF @@detected_cycles.size() < result_limit THEN
+             IF tgt.@start_times.containsKey(tgt) THEN
                  @@detected_cycles += CycleRecord(
-                     path_str, 
-                     3, 
-                     min_t, 
-                     max_t, 
-                     dur, 
-                     min_amt, 
-                     max_amt, 
-                     ret, 
-                     is_valid, 
-                     risk
+                     tgt.label + " -> " + src.label + " -> " + tgt.label,
+                     3,
+                     tgt.@start_times.get(tgt),
+                     e.event_timestamp,
+                     abs(e.event_timestamp - tgt.@start_times.get(tgt)),
+                     e.amount,
+                     e.amount,
+                     1.0,
+                     TRUE,
+                     "HIGH"
                  )
-             END;
-
-    // --------------------------------------------------------------------------
-    // 2. Detect 4-hop cycles if max_depth >= 4: W1 -> W2 -> W3 -> W4 -> W1
-    // --------------------------------------------------------------------------
-    IF max_depth >= 4 THEN
-        C4 = SELECT w1 FROM Wallet:w1 -(TRANSFERRED_TO:e1)-> Wallet:w2,
-                           Wallet:w2_alias -(TRANSFERRED_TO:e2)-> Wallet:w3,
-                           Wallet:w3_alias -(TRANSFERRED_TO:e3)-> Wallet:w4,
-                           Wallet:w4_alias -(TRANSFERRED_TO:e4)-> Wallet:w1_alias
-             WHERE w2 == w2_alias 
-               AND w3 == w3_alias 
-               AND w4 == w4_alias 
-               AND w1 == w1_alias
-               AND w1.id != w2.id AND w2.id != w3.id AND w3.id != w4.id AND w1.id != w4.id
-               AND w1.id < w2.id AND w1.id < w3.id AND w1.id < w4.id
-             ACCUM
-                 INT min_t = min(min(e1.event_timestamp, e2.event_timestamp), min(e3.event_timestamp, e4.event_timestamp)),
-                 INT max_t = max(max(e1.event_timestamp, e2.event_timestamp), max(e3.event_timestamp, e4.event_timestamp)),
-                 INT dur = max_t - min_t,
-                 DOUBLE min_amt = min(min(e1.amount, e2.amount), min(e3.amount, e4.amount)),
-                 DOUBLE max_amt = max(max(e1.amount, e2.amount), max(e3.amount, e4.amount)),
-                 DOUBLE ret = CASE WHEN max_amt > 0 THEN (min_amt / max_amt) ELSE 0.0 END,
-                 BOOL is_valid = (dur <= time_window_seconds AND e1.event_timestamp <= e2.event_timestamp AND e2.event_timestamp <= e3.event_timestamp AND e3.event_timestamp <= e4.event_timestamp),
-                 STRING path_str = w1.id + " -> " + w2.id + " -> " + w3.id + " -> " + w4.id + " -> " + w1.id,
-                 STRING risk = CASE 
-                     WHEN is_valid AND ret >= 0.80 THEN "HIGH"
-                     WHEN is_valid THEN "MEDIUM"
-                     ELSE "LOW_TOPOLOGICAL_ONLY"
-                 END
-             POST-ACCUM
-                 IF @@detected_cycles.size() < result_limit THEN
-                     @@detected_cycles += CycleRecord(
-                         path_str, 
-                         4, 
-                         min_t, 
-                         max_t, 
-                         dur, 
-                         min_amt, 
-                         max_amt, 
-                         ret, 
-                         is_valid, 
-                         risk
-                     )
-                 END;
-    END;
+             END
+         LIMIT result_limit;
 
     PRINT @@detected_cycles AS cycles,
           @@detected_cycles.size() AS total_cycles_found;
 }
-
-INSTALL QUERY ghostshield_detect_cycles

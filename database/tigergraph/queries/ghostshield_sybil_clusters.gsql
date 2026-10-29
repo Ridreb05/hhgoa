@@ -24,6 +24,8 @@ CREATE QUERY ghostshield_sybil_clusters(
     > SybilClusterRecord;
 
     ListAccum<SybilClusterRecord> @@clusters;
+    SetAccum<STRING> @member_set;
+    SumAccum<DOUBLE> @total_vol;
 
     // --------------------------------------------------------------------------
     // 1. Cluster wallets by shared FundingSource (mixers, CEX deposit sweeps, bridges)

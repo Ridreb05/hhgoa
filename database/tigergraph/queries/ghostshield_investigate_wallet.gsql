@@ -1,60 +1,21 @@
 // ==============================================================================
 // GSQL Query C: ghostshield_investigate_wallet
-// Bounded multi-hop investigation expanding from a target wallet vertex.
-// Retrieves 1-hop and 2-hop relationships: transfers, funding sources,
-// agent delegation, smart contracts, and proximity to risk seeds.
+// Pure GSQL v1 multi-hop wallet investigation
 // ==============================================================================
 
 USE GRAPH GhostShieldGraph
-DROP QUERY ghostshield_investigate_wallet
 
-CREATE QUERY ghostshield_investigate_wallet(
+CREATE OR REPLACE QUERY ghostshield_investigate_wallet(
     VERTEX<Wallet> target_wallet,
     INT max_hops = 2,
     INT transfer_limit = 25,
     INT neighbor_limit = 50
 ) FOR GRAPH GhostShieldGraph {
-    TYPEDEF TUPLE<
-        STRING from_id,
-        STRING to_id,
-        DOUBLE amount,
-        STRING asset,
-        INT event_timestamp,
-        STRING tx_id,
-        STRING direction
-    > TransferRecord;
-
-    TYPEDEF TUPLE<
-        STRING source_id,
-        STRING category,
-        STRING label,
-        DOUBLE amount,
-        INT funding_timestamp,
-        STRING event_id
-    > FundingRecord;
-
-    TYPEDEF TUPLE<
-        STRING agent_id,
-        STRING display_name,
-        STRING agent_type,
-        STRING delegation_partner_id,
-        STRING delegation_type
-    > AgentRecord;
-
-    TYPEDEF TUPLE<
-        STRING contract_id,
-        STRING protocol,
-        STRING category,
-        STRING interaction_type,
-        INT interaction_timestamp
-    > ContractRecord;
-
-    TYPEDEF TUPLE<
-        STRING entity_id,
-        STRING entity_type,
-        INT hop_distance,
-        STRING reason
-    > RiskSeedRecord;
+    TYPEDEF TUPLE<STRING from_id, STRING to_id, DOUBLE amount, STRING asset, INT event_timestamp, STRING tx_id, STRING direction> TransferRecord;
+    TYPEDEF TUPLE<STRING source_id, STRING category, STRING label, DOUBLE amount, INT funding_timestamp, STRING event_id> FundingRecord;
+    TYPEDEF TUPLE<STRING agent_id, STRING display_name, STRING agent_type, STRING delegation_partner_id, STRING delegation_type> AgentRecord;
+    TYPEDEF TUPLE<STRING contract_id, STRING protocol, STRING category, STRING interaction_type, INT interaction_timestamp> ContractRecord;
+    TYPEDEF TUPLE<STRING entity_id, STRING entity_type, INT hop_distance, STRING reason> RiskSeedRecord;
 
     ListAccum<TransferRecord> @@transfers;
     ListAccum<FundingRecord> @@funding_sources;
@@ -63,65 +24,47 @@ CREATE QUERY ghostshield_investigate_wallet(
     ListAccum<RiskSeedRecord> @@risk_seeds_nearby;
     SetAccum<STRING> @@shared_funding_wallets;
 
-    OrAccum @is_risk;
     Start = { target_wallet };
 
     // 1. Direct Outgoing Transfers
     OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-            LIMIT transfer_limit
-            ACCUM @@transfers += TransferRecord(
-                src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id, "OUTGOING"
-            );
+            ACCUM @@transfers += TransferRecord(src.label, tgt.label, e.amount, e.asset, e.event_timestamp, e.tx_id, "OUTGOING")
+            LIMIT transfer_limit;
 
     // 2. Direct Incoming Transfers
     InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO:e)-> Wallet:src
-           LIMIT transfer_limit
-           ACCUM @@transfers += TransferRecord(
-               src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id, "INCOMING"
-           );
+           ACCUM @@transfers += TransferRecord(src.label, tgt.label, e.amount, e.asset, e.event_timestamp, e.tx_id, "INCOMING")
+           LIMIT transfer_limit;
 
     // 3. Direct Upstream Funding Sources
     Funding = SELECT fs FROM Start:tgt -(FUNDED_BY:e)-> FundingSource:fs
-              ACCUM @@funding_sources += FundingRecord(
-                  fs.id, fs.category, fs.label, e.amount, e.funding_timestamp, e.event_id
-              );
+              ACCUM @@funding_sources += FundingRecord(fs.label, fs.category, fs.label, e.amount, e.funding_timestamp, e.tx_id);
 
-    // 4. Shared Funding Counterparties (2-hop via FundingSource)
+    // 4. Shared Funding Counterparties
     SharedWallets = SELECT w FROM Funding:fs -(FUNDED:e)-> Wallet:w
                     WHERE w != target_wallet
-                    LIMIT neighbor_limit
-                    ACCUM @@shared_funding_wallets += w.id;
+                    ACCUM @@shared_funding_wallets += w.label
+                    LIMIT neighbor_limit;
 
-    // 5. Associated Controlling Agents & Delegations
+    // 5. Associated Controlling Agents
     Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY:e)-> Agent:a
-             ACCUM @@agents += AgentRecord(
-                 a.id, a.display_name, a.agent_type, "", ""
-             );
-
-    AgentDelegations = SELECT a2 FROM Agents:a1 -(DELEGATES_TO:e)-> Agent:a2
-                       ACCUM @@agents += AgentRecord(
-                           a1.id, a1.display_name, a1.agent_type, a2.id, e.delegation_type
-                       );
+             ACCUM @@agents += AgentRecord(a.display_name, a.display_name, a.agent_type, "", "");
 
     // 6. Connected Smart Contracts
     Contracts = SELECT sc FROM Start:w -(INTERACTS_WITH:e)-> SmartContract:sc
-                LIMIT neighbor_limit
-                ACCUM @@contracts += ContractRecord(
-                    sc.id, sc.protocol, sc.category, e.interaction_type, e.interaction_timestamp
-                );
+                ACCUM @@contracts += ContractRecord(sc.protocol, sc.protocol, sc.category, e.method, e.interaction_timestamp)
+                LIMIT neighbor_limit;
 
-    // 7. Known-Risk Proximity (Check 1-hop and 2-hop)
-    Hop1Wallets = SELECT w FROM Start:src -(TRANSFERRED_TO|REVERSE_TRANSFERRED_TO:e)-> Wallet:w
-                  WHERE w.is_risk_seed
-                  ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.id, "Wallet", 1, "Direct transfer counterparty with risk seed");
+    // 7. Known-Risk Proximity (Two separate 1-hop queries in standard GSQL v1)
+    OutRisk = SELECT w FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:w
+              WHERE w.is_risk_seed
+              ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.label, "Wallet", 1, "Direct transfer counterparty with risk seed");
 
-    IF max_hops >= 2 THEN
-        Hop2Wallets = SELECT w2 FROM Hop1Wallets:w1 -(TRANSFERRED_TO|REVERSE_TRANSFERRED_TO:e)-> Wallet:w2
-                      WHERE w2.is_risk_seed AND w2 != target_wallet
-                      ACCUM @@risk_seeds_nearby += RiskSeedRecord(w2.id, "Wallet", 2, "2-hop connection to risk seed");
-    END;
+    InRisk = SELECT w FROM Start:src -(REVERSE_TRANSFERRED_TO:e)-> Wallet:w
+             WHERE w.is_risk_seed
+             ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.label, "Wallet", 1, "Direct transfer counterparty with risk seed");
 
-    PRINT target_wallet.id AS investigated_wallet_id,
+    PRINT target_wallet.label AS investigated_wallet_id,
           target_wallet.label AS wallet_label,
           target_wallet.is_risk_seed AS is_target_risk_seed,
           @@transfers AS transfers,
@@ -131,5 +74,3 @@ CREATE QUERY ghostshield_investigate_wallet(
           @@contracts AS contract_interactions,
           @@risk_seeds_nearby AS risk_seed_connections;
 }
-
-INSTALL QUERY ghostshield_investigate_wallet
