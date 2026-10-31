@@ -23,14 +23,11 @@ loadEnv();
 export const host = (process.env.TIGERGRAPH_HOST || '').replace(/\/$/, '');
 export const graph = process.env.TIGERGRAPH_GRAPH_NAME || 'GhostShieldGraph';
 
-if (!host || host.includes('your-cluster')) {
-  console.error('TIGERGRAPH_HOST is not configured in .env.local');
-  process.exit(1);
-}
-
 let cachedToken: { value: string; expires: number } | null = null;
 
+// Checked on first cluster call, not at import, so pure helpers in the loaders stay importable (unit tests, CI).
 export async function authHeader(): Promise<string> {
+  if (!host || host.includes('your-cluster')) throw new Error('TIGERGRAPH_HOST is not configured in .env.local');
   if (process.env.TIGERGRAPH_TOKEN) return `Bearer ${process.env.TIGERGRAPH_TOKEN}`;
   const secret = process.env.TIGERGRAPH_SECRET;
   if (secret) {
