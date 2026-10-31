@@ -134,8 +134,9 @@ export class TigerGraphAdapter implements GraphProvider {
       fetch(url, { method: 'GET', headers: await this.getAuthHeaders(), signal: AbortSignal.timeout(this.timeoutMs) });
 
     let response = await call();
-    if (response.status === 401 && this.secret) {
-      this.jwt = undefined; // expired or revoked: mint a new one and retry once
+    // 401: token expired or revoked. 403: no token was sent because minting failed (e.g. workspace waking from suspend).
+    if ((response.status === 401 || response.status === 403) && this.secret) {
+      this.jwt = undefined; // mint a new one and retry once
       response = await call();
     }
 
