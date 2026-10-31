@@ -34,10 +34,6 @@
 
 ## 📊 Results at a glance
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
 **Synthetic benchmark** (planted ground truth *and* planted hard negatives)
 
 | Detector | Precision | Recall |
@@ -48,21 +44,12 @@
 
 0 of 40 slow "decoy" cycles flagged. Quality is unchanged from 88k to **~987k transfers**; cycle detection goes from 0.4 s to 2.4 s.
 
-</td>
-<td width="50%" valign="top">
-
-**Real data**
+**Real data** (weaknesses included, see [Real data](#real-data))
 
 | Dataset | Result |
 |---|---|
 | **Elliptic Bitcoin** (4,545 illicit labels, held-out) | Taint AUC **0.887** vs 0.849 for plain hop distance |
 | **Ethereum mainnet** (600 blocks, 47,715 edges) | 272 time-ordered cycles, **exact match** with an independent recount |
-
-Weaknesses are reported too: see [Real data](#real-data).
-
-</td>
-</tr>
-</table>
 
 **What the graph buys you.** The same questions answered without multi-hop, time-aware traversal ([`docs/BASELINES.md`](docs/BASELINES.md)):
 
@@ -290,10 +277,10 @@ Half of the illicit labels are used as seeds, the other half are hidden and must
 | Unweighted distance to a seed (≤ 4 hops) | 0.838 ± 0.008 |
 | Random | 0.498 ± 0.005 |
 
-> [!WARNING]
-> **Where it loses.** At the very top of the ranking the naive "direct neighbour of a seed" rule is better: precision@100 of **43.7%** against 18.0% for the best taint configuration. Forward-only or backward-only propagation is close to random (AUC ≈ 0.58). Elliptic has no amounts, so the value weighting is untested on labeled real data.
-
 </details>
+
+> [!WARNING]
+> **Where it loses on Elliptic.** At the very top of the ranking the naive "direct neighbour of a seed" rule is better: precision@100 of **43.7%** against 18.0% for the best taint configuration. Forward-only or backward-only propagation is close to random (AUC ≈ 0.58). Elliptic has no amounts, so the value weighting is untested on labeled real data.
 
 <details>
 <summary><b>Ethereum mainnet</b>: 600 blocks, 58,902 value transfers, 45,981 wallets (no fraud labels, so no precision claim)</summary>
