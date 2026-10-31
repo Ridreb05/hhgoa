@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import {
-  Shield,
   Layers,
   Search,
   Play,
@@ -46,8 +46,8 @@ export function Header({
         <div className="flex items-center justify-between h-14">
           {/* Logo & Brand Identity */}
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-[5px] border border-[#303139] bg-[#10141c] flex items-center justify-center text-[#ff951f] shadow-sm">
-              <Shield className="w-4 h-4 stroke-[2.2]" />
+            <div className="w-7 h-7 rounded-[5px] border border-[#303139] bg-[#10141c] flex items-center justify-center shadow-sm">
+              <Image src="/brand/ghostshield-mark.svg" alt="GhostShield" width={17} height={19} unoptimized priority />
             </div>
             <div className="flex items-baseline gap-2">
               <span className="font-sans font-semibold text-[#f4f5f7] text-sm tracking-tight">
