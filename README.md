@@ -14,6 +14,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vitest](https://img.shields.io/badge/tests-vitest-6E9F18?logo=vitest&logoColor=white)](tests/)
 
+**[Problem](#problem)** ·
 **[Results](#results)** ·
 **[How it works](#how-it-works)** ·
 **[Detectors](#detectors)** ·
@@ -29,6 +30,59 @@
 > [!NOTE]
 > **TL;DR.** Every individual transfer in a laundering loop or a Sybil farm looks normal. The fraud only exists in the *shape* of the activity: money returning to its origin within minutes, dozens of wallets funded in one burst and driven by one agent, risk leaking several hops out from a sanctioned address.
 > GhostShield models wallets, funders, AI agents and contracts as a graph in **TigerGraph** and finds those shapes with **custom GSQL algorithms that run entirely in the database**. The Next.js console only renders what the engine returns.
+
+<a id="problem"></a>
+
+## 🎯 The problem
+
+In permissionless systems a new wallet costs nothing, and autonomous AI agents can now create and operate thousands of them. Attackers use that to split one operation across many wallets so that **no single transaction breaks a rule**. Transaction monitoring that inspects rows of `(sender, recipient, amount, timestamp)` one at a time cannot see it.
+
+GhostShield targets three patterns:
+
+| Pattern | What the attacker does | Why row-by-row checks miss it |
+|---|---|---|
+| **Rapid circular flows** | Routes funds through puppet wallets in a closed loop within minutes, to fake volume, move AMM prices or obscure stolen funds while keeping control of them | Each hop is an ordinary transfer between valid accounts |
+| **Sybil farms** | Funds dozens of fresh wallets from one mixer, bridge or exchange sweep and drives them with one bot or agent to farm airdrops, votes or incentives | Each wallet looks like an independent new user |
+| **Taint by distance** | Moves sanctioned or stolen funds several hops away before they reach a counterparty | Only direct counterparties are checked |
+
+<details>
+<summary><b>Worked example: a 3-hop loop in 8 minutes</b></summary>
+
+<br/>
+
+| Time | Event | Seen in isolation |
+|---|---|---|
+| `T+00:00` | Mixer `FS_TORNADO_CASH_01` funds `Wallet_Alpha` with 10.0 ETH | A deposit |
+| `T+00:02` | `Wallet_Alpha` → `Wallet_Beta`, 9.9 ETH | A normal transfer |
+| `T+00:05` | `Wallet_Beta` → `Wallet_Gamma`, 9.8 ETH | A normal transfer |
+| `T+00:08` | `Wallet_Gamma` → `Wallet_Alpha`, 9.7 ETH | A normal transfer |
+
+Seen as a graph, this is a closed, time-ordered 3-cycle completed in 8 minutes, returning 97% of the value to its origin, funded by a mixer. Every row passes a threshold check; the shape does not.
+
+</details>
+
+### Who it is for
+
+* **DeFi protocol security and risk teams** watching pools, bridges and lending markets for wash trading and Sybil manipulation.
+* **Developers of autonomous financial agents** that need to check a counterparty before an agent signs a settlement.
+* **Compliance and forensics investigators** who need explainable, time-bounded evidence paths rather than an opaque score.
+
+### Why a graph, and why existing tools fall short
+
+* **Multi-hop questions need traversal.** A 3–5 hop loop with a time rule on every hop is 3–5 self-joins of the transfers table in SQL, with the search space growing at each join. In TigerGraph it is a bounded traversal that runs in parallel across vertices, with accumulators carrying the path state.
+* **Topology alone is not enough.** Standard cycle detection (Johnson's algorithm, GDS cycle detection) reports every loop, including ones that formed over months through normal arbitrage and rebalancing. GhostShield requires time order and a closing window, which is what took precision from 2.4% to 100% on our benchmark.
+* **Enterprise forensics is closed.** Tools such as Chainalysis, Elliptic and TRM rely on proprietary attribution databases and batch scoring. GhostShield is open, runs on your own graph, and is fast enough to sit in front of a transaction as a pre-execution check.
+
+### Scope
+
+| GhostShield does | GhostShield does not |
+|---|---|
+| Score proposed transactions and wallets as `ALLOW`, `REVIEW` or `REJECT`, with the evidence behind each score | Sign, broadcast or block live transactions; it is an advisory gateway |
+| Run bounded, parameterised traversals (depth and time windows) | Run unbounded traversals that could exhaust the database |
+| Report corroborating risk signals for an analyst | Claim that a cycle or a shared funder proves criminal intent |
+| Fail loudly when the live engine errors | Silently fall back to demo data |
+
+More: [`docs/PROBLEM_STATEMENT.md`](docs/PROBLEM_STATEMENT.md) · [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md)
 
 <a id="results"></a>
 
