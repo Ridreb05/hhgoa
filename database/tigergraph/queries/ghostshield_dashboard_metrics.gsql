@@ -6,7 +6,7 @@
 USE GRAPH GhostShieldGraph
 DROP QUERY ghostshield_dashboard_metrics
 
-CREATE QUERY ghostshield_dashboard_metrics() FOR GRAPH GhostShieldGraph {
+CREATE QUERY ghostshield_dashboard_metrics(STRING scope = "") FOR GRAPH GhostShieldGraph {
     SumAccum<INT> @@total_wallets;
     SumAccum<INT> @@total_funding_sources;
     SumAccum<INT> @@total_agents;
@@ -18,16 +18,19 @@ CREATE QUERY ghostshield_dashboard_metrics() FOR GRAPH GhostShieldGraph {
 
     // 1. Wallets and known-risk seed counts
     W = SELECT s FROM Wallet:s
+        WHERE (scope == "" OR instr(s.provenance, scope) == 0)
         ACCUM
             @@total_wallets += 1,
             CASE WHEN s.is_risk_seed THEN @@risk_seed_wallets += 1 END;
 
     // 2. Upstream funding origins
     FS = SELECT s FROM FundingSource:s
+         WHERE (scope == "" OR instr(s.provenance, scope) == 0)
          ACCUM @@total_funding_sources += 1;
 
     // 3. Autonomous decision agents
     A = SELECT s FROM Agent:s
+        WHERE (scope == "" OR instr(s.provenance, scope) == 0)
         ACCUM @@total_agents += 1;
 
     // 4. Smart contract protocols
@@ -36,6 +39,7 @@ CREATE QUERY ghostshield_dashboard_metrics() FOR GRAPH GhostShieldGraph {
 
     // 5. Aggregate transfer volume and temporal bounds
     T = SELECT tgt FROM Wallet:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+        WHERE (scope == "" OR instr(src.provenance, scope) == 0)
         ACCUM
             @@total_transfers += 1,
             @@total_transfer_volume += e.amount,

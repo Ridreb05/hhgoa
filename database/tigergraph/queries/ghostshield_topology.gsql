@@ -1,0 +1,63 @@
+// ==============================================================================
+// GSQL Query G: ghostshield_topology
+// Bounded subgraph for the explorer. With center_id the view is the hops-hop
+// neighborhood of that wallet; without it, the "hot" subgraph: known-risk
+// wallets, wallets with propagated taint (risk_score > 0) and members of a
+// detected community, plus their direct neighbors. Capped at vertex_limit.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+
+CREATE OR REPLACE QUERY ghostshield_topology(
+    STRING center_id = "",
+    INT hops = 1,
+    INT vertex_limit = 250,
+    STRING scope = ""
+) FOR GRAPH GhostShieldGraph {
+    OrAccum @in;
+    SumAccum<INT> @@picked;
+    ListAccum<EDGE> @@edges;
+
+    IF center_id != "" THEN
+        Seed = SELECT w FROM Wallet:w WHERE w.id == center_id;
+    ELSE
+        Seed = SELECT w FROM Wallet:w
+               WHERE (w.is_risk_seed == TRUE OR w.risk_score > 0 OR w.community_id != "") AND (scope == "" OR instr(w.provenance, scope) == 0)
+               LIMIT vertex_limit;
+    END;
+
+    Seed = SELECT s FROM Seed:s POST-ACCUM s.@in += TRUE, @@picked += 1;
+    Frontier = Seed;
+
+    WHILE Frontier.size() > 0 AND @@picked < vertex_limit LIMIT hops DO
+        N1 = SELECT t FROM Frontier:s -(TRANSFERRED_TO>:e)- Wallet:t WHERE t.@in == FALSE LIMIT vertex_limit;
+        N2 = SELECT t FROM Frontier:s -(REVERSE_TRANSFERRED_TO>:e)- Wallet:t WHERE t.@in == FALSE LIMIT vertex_limit;
+        N3 = SELECT t FROM Frontier:s -(FUNDED_BY>:e)- FundingSource:t WHERE t.@in == FALSE LIMIT vertex_limit;
+        N4 = SELECT t FROM Frontier:s -(CONTROLLED_BY>:e)- Agent:t WHERE t.@in == FALSE LIMIT vertex_limit;
+        N5 = SELECT t FROM Frontier:s -(INTERACTS_WITH>:e)- SmartContract:t WHERE t.@in == FALSE LIMIT vertex_limit;
+        Wn = N1 UNION N2;
+        Wn = SELECT t FROM Wn:t WHERE @@picked < vertex_limit POST-ACCUM t.@in += TRUE, @@picked += 1;
+        N3 = SELECT t FROM N3:t POST-ACCUM t.@in += TRUE, @@picked += 1;
+        N4 = SELECT t FROM N4:t POST-ACCUM t.@in += TRUE, @@picked += 1;
+        N5 = SELECT t FROM N5:t POST-ACCUM t.@in += TRUE, @@picked += 1;
+        Frontier = Wn;
+    END;
+
+    W  = SELECT w FROM Wallet:w WHERE w.@in;
+    F  = SELECT f FROM FundingSource:f WHERE f.@in;
+    A  = SELECT a FROM Agent:a WHERE a.@in;
+    SC = SELECT c FROM SmartContract:c WHERE c.@in;
+
+    E1 = SELECT s FROM W:s -(TRANSFERRED_TO>:e)- Wallet:t WHERE t.@in ACCUM @@edges += e;
+    E2 = SELECT s FROM F:s -(FUNDED>:e)- Wallet:t WHERE t.@in ACCUM @@edges += e;
+    E3 = SELECT s FROM A:s -(CONTROLS>:e)- Wallet:t WHERE t.@in ACCUM @@edges += e;
+    E4 = SELECT s FROM A:s -(DELEGATES_TO>:e)- Agent:t WHERE t.@in ACCUM @@edges += e;
+    E5 = SELECT s FROM W:s -(INTERACTS_WITH>:e)- SmartContract:t WHERE t.@in ACCUM @@edges += e;
+
+    PRINT @@edges AS edges;
+    PRINT W[W.network AS network, W.label AS label, W.creation_time AS creation_time, W.provenance AS provenance,
+            W.is_risk_seed AS is_risk_seed, W.risk_score AS risk_score, W.community_id AS community_id] AS wallets;
+    PRINT F[F.label AS label, F.category AS category, F.provenance AS provenance] AS funding_sources;
+    PRINT A[A.display_name AS display_name, A.agent_type AS agent_type, A.provenance AS provenance] AS agents;
+    PRINT SC[SC.network AS network, SC.protocol AS protocol, SC.category AS category] AS contracts;
+}

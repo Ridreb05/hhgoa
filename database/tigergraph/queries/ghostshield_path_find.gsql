@@ -1,83 +1,102 @@
 // ==============================================================================
 // GSQL Query F: ghostshield_path_find
-// Bounded multi-hop path reconstruction between two arbitrary wallet entities.
-// Reconstructs step-by-step transaction breadcrumbs with timestamps and amounts.
+// All simple transfer paths of 1..4 hops from source_wallet to target_wallet,
+// found with in-engine pattern matching. temporal_order = TRUE additionally
+// requires hop timestamps to be non-decreasing (evaluated in ACCUM: cross-edge
+// attribute comparisons in WHERE are not reliably enforced by pattern matching) (a real money trail). Each path
+// carries its hops as "index|from|to|amount|asset|timestamp|tx" joined by ";".
 // ==============================================================================
 
 USE GRAPH GhostShieldGraph
-DROP QUERY ghostshield_path_find
 
-CREATE QUERY ghostshield_path_find(
+CREATE OR REPLACE QUERY ghostshield_path_find(
     VERTEX<Wallet> source_wallet,
     VERTEX<Wallet> target_wallet,
-    INT max_hops = 4
+    INT max_hops = 4,
+    BOOL temporal_order = FALSE,
+    INT result_limit = 25
 ) FOR GRAPH GhostShieldGraph {
-    TYPEDEF TUPLE<
-        INT hop_index,
-        STRING from_id,
-        STRING to_id,
-        DOUBLE amount,
-        STRING asset,
-        INT event_timestamp,
-        STRING tx_id
-    > PathHop;
-
     TYPEDEF TUPLE<
         INT total_hops,
         DOUBLE total_volume,
         INT duration_seconds,
         STRING path_string,
-        LIST<PathHop> hops
+        STRING hops
     > CompletePath;
 
-    ListAccum<CompletePath> @@discovered_paths;
-    Start = { source_wallet };
+    ListAccum<CompletePath> @@paths;
+    SumAccum<INT> @@paths_found;
 
-    // 1-Hop direct path check
-    Hop1 = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-           WHERE tgt == target_wallet
-           ACCUM
-               ListAccum<PathHop> l_hops,
-               l_hops += PathHop(1, src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id),
-               @@discovered_paths += CompletePath(1, e.amount, 0, src.id + " -> " + tgt.id, l_hops);
+    Start = {source_wallet};
 
-    // 2-Hop path check
-    IF @@discovered_paths.size() == 0 AND max_hops >= 2 THEN
-        Hop2 = SELECT w2 FROM Start:w0 -(TRANSFERRED_TO:e1)-> Wallet:w1,
-                              Wallet:w1_alias -(TRANSFERRED_TO:e2)-> Wallet:w2
-               WHERE w1 == w1_alias AND w2 == target_wallet AND w1 != target_wallet
+    IF max_hops >= 1 THEN
+        P1 = SELECT a
+               FROM Start:a -(TRANSFERRED_TO>:e1)- Wallet:z
+               WHERE z == target_wallet
                ACCUM
-                   ListAccum<PathHop> l_hops,
-                   l_hops += PathHop(1, w0.id, w1.id, e1.amount, e1.asset, e1.event_timestamp, e1.tx_id),
-                   l_hops += PathHop(2, w1.id, w2.id, e2.amount, e2.asset, e2.event_timestamp, e2.tx_id),
-                   INT dur = abs(e2.event_timestamp - e1.event_timestamp),
-                   DOUBLE vol = e1.amount + e2.amount,
-                   @@discovered_paths += CompletePath(2, vol, dur, w0.id + " -> " + w1.id + " -> " + w2.id, l_hops);
+                   IF TRUE THEN
+                       @@paths_found += 1,
+                       IF @@paths.size() < result_limit THEN
+                           @@paths += CompletePath(1, e1.amount, 0, a.id + " -> " + z.id,
+                               "1|" + a.id + "|" + z.id + "|" + to_string(e1.amount) + "|" + e1.asset + "|" + to_string(e1.event_timestamp) + "|" + e1.tx_id)
+                       END
+                   END;
     END;
 
-    // 3-Hop path check
-    IF @@discovered_paths.size() == 0 AND max_hops >= 3 THEN
-        Hop3 = SELECT w3 FROM Start:w0 -(TRANSFERRED_TO:e1)-> Wallet:w1,
-                              Wallet:w1_alias -(TRANSFERRED_TO:e2)-> Wallet:w2,
-                              Wallet:w2_alias -(TRANSFERRED_TO:e3)-> Wallet:w3
-               WHERE w1 == w1_alias AND w2 == w2_alias AND w3 == target_wallet
-                 AND w1 != target_wallet AND w2 != target_wallet
+    IF max_hops >= 2 THEN
+        P2 = SELECT a
+               FROM Start:a -(TRANSFERRED_TO>:e1)- Wallet:m1 -(TRANSFERRED_TO>:e2)- Wallet:z
+               WHERE z == target_wallet
+                 AND m1 != source_wallet AND m1 != target_wallet
                ACCUM
-                   ListAccum<PathHop> l_hops,
-                   l_hops += PathHop(1, w0.id, w1.id, e1.amount, e1.asset, e1.event_timestamp, e1.tx_id),
-                   l_hops += PathHop(2, w1.id, w2.id, e2.amount, e2.asset, e2.event_timestamp, e2.tx_id),
-                   l_hops += PathHop(3, w2.id, w3.id, e3.amount, e3.asset, e3.event_timestamp, e3.tx_id),
-                   INT min_t = min(e1.event_timestamp, min(e2.event_timestamp, e3.event_timestamp)),
-                   INT max_t = max(e1.event_timestamp, max(e2.event_timestamp, e3.event_timestamp)),
-                   DOUBLE vol = e1.amount + e2.amount + e3.amount,
-                   @@discovered_paths += CompletePath(3, vol, max_t - min_t, w0.id + " -> " + w1.id + " -> " + w2.id + " -> " + w3.id, l_hops);
+                   IF (NOT temporal_order OR e1.event_timestamp <= e2.event_timestamp) THEN
+                       @@paths_found += 1,
+                       IF @@paths.size() < result_limit THEN
+                           @@paths += CompletePath(2, e1.amount + e2.amount, (CASE WHEN e1.event_timestamp >= e2.event_timestamp THEN e1.event_timestamp ELSE e2.event_timestamp END) - (CASE WHEN e1.event_timestamp <= e2.event_timestamp THEN e1.event_timestamp ELSE e2.event_timestamp END), a.id + " -> " + m1.id + " -> " + z.id,
+                               "1|" + a.id + "|" + m1.id + "|" + to_string(e1.amount) + "|" + e1.asset + "|" + to_string(e1.event_timestamp) + "|" + e1.tx_id + ";" + "2|" + m1.id + "|" + z.id + "|" + to_string(e2.amount) + "|" + e2.asset + "|" + to_string(e2.event_timestamp) + "|" + e2.tx_id)
+                       END
+                   END;
+    END;
+
+    IF max_hops >= 3 THEN
+        P3 = SELECT a
+               FROM Start:a -(TRANSFERRED_TO>:e1)- Wallet:m1 -(TRANSFERRED_TO>:e2)- Wallet:m2 -(TRANSFERRED_TO>:e3)- Wallet:z
+               WHERE z == target_wallet
+                 AND m1 != source_wallet AND m1 != target_wallet
+                 AND m2 != source_wallet AND m2 != target_wallet
+                 AND m1 != m2
+               ACCUM
+                   IF (NOT temporal_order OR e1.event_timestamp <= e2.event_timestamp) AND (NOT temporal_order OR e2.event_timestamp <= e3.event_timestamp) THEN
+                       @@paths_found += 1,
+                       IF @@paths.size() < result_limit THEN
+                           @@paths += CompletePath(3, e1.amount + e2.amount + e3.amount, (CASE WHEN e1.event_timestamp >= e2.event_timestamp AND e1.event_timestamp >= e3.event_timestamp THEN e1.event_timestamp WHEN e2.event_timestamp >= e3.event_timestamp THEN e2.event_timestamp ELSE e3.event_timestamp END) - (CASE WHEN e1.event_timestamp <= e2.event_timestamp AND e1.event_timestamp <= e3.event_timestamp THEN e1.event_timestamp WHEN e2.event_timestamp <= e3.event_timestamp THEN e2.event_timestamp ELSE e3.event_timestamp END), a.id + " -> " + m1.id + " -> " + m2.id + " -> " + z.id,
+                               "1|" + a.id + "|" + m1.id + "|" + to_string(e1.amount) + "|" + e1.asset + "|" + to_string(e1.event_timestamp) + "|" + e1.tx_id + ";" + "2|" + m1.id + "|" + m2.id + "|" + to_string(e2.amount) + "|" + e2.asset + "|" + to_string(e2.event_timestamp) + "|" + e2.tx_id + ";" + "3|" + m2.id + "|" + z.id + "|" + to_string(e3.amount) + "|" + e3.asset + "|" + to_string(e3.event_timestamp) + "|" + e3.tx_id)
+                       END
+                   END;
+    END;
+
+    IF max_hops >= 4 THEN
+        P4 = SELECT a
+               FROM Start:a -(TRANSFERRED_TO>:e1)- Wallet:m1 -(TRANSFERRED_TO>:e2)- Wallet:m2 -(TRANSFERRED_TO>:e3)- Wallet:m3 -(TRANSFERRED_TO>:e4)- Wallet:z
+               WHERE z == target_wallet
+                 AND m1 != source_wallet AND m1 != target_wallet
+                 AND m2 != source_wallet AND m2 != target_wallet
+                 AND m3 != source_wallet AND m3 != target_wallet
+                 AND m1 != m2
+                 AND m1 != m3
+                 AND m2 != m3
+               ACCUM
+                   IF (NOT temporal_order OR e1.event_timestamp <= e2.event_timestamp) AND (NOT temporal_order OR e2.event_timestamp <= e3.event_timestamp) AND (NOT temporal_order OR e3.event_timestamp <= e4.event_timestamp) THEN
+                       @@paths_found += 1,
+                       IF @@paths.size() < result_limit THEN
+                           @@paths += CompletePath(4, e1.amount + e2.amount + e3.amount + e4.amount, (CASE WHEN e1.event_timestamp >= e2.event_timestamp AND e1.event_timestamp >= e3.event_timestamp AND e1.event_timestamp >= e4.event_timestamp THEN e1.event_timestamp WHEN e2.event_timestamp >= e3.event_timestamp AND e2.event_timestamp >= e4.event_timestamp THEN e2.event_timestamp WHEN e3.event_timestamp >= e4.event_timestamp THEN e3.event_timestamp ELSE e4.event_timestamp END) - (CASE WHEN e1.event_timestamp <= e2.event_timestamp AND e1.event_timestamp <= e3.event_timestamp AND e1.event_timestamp <= e4.event_timestamp THEN e1.event_timestamp WHEN e2.event_timestamp <= e3.event_timestamp AND e2.event_timestamp <= e4.event_timestamp THEN e2.event_timestamp WHEN e3.event_timestamp <= e4.event_timestamp THEN e3.event_timestamp ELSE e4.event_timestamp END), a.id + " -> " + m1.id + " -> " + m2.id + " -> " + m3.id + " -> " + z.id,
+                               "1|" + a.id + "|" + m1.id + "|" + to_string(e1.amount) + "|" + e1.asset + "|" + to_string(e1.event_timestamp) + "|" + e1.tx_id + ";" + "2|" + m1.id + "|" + m2.id + "|" + to_string(e2.amount) + "|" + e2.asset + "|" + to_string(e2.event_timestamp) + "|" + e2.tx_id + ";" + "3|" + m2.id + "|" + m3.id + "|" + to_string(e3.amount) + "|" + e3.asset + "|" + to_string(e3.event_timestamp) + "|" + e3.tx_id + ";" + "4|" + m3.id + "|" + z.id + "|" + to_string(e4.amount) + "|" + e4.asset + "|" + to_string(e4.event_timestamp) + "|" + e4.tx_id)
+                       END
+                   END;
     END;
 
     PRINT source_wallet.id AS source_wallet_id,
           target_wallet.id AS target_wallet_id,
-          @@discovered_paths AS paths,
-          @@discovered_paths.size() AS paths_found;
+          @@paths AS paths,
+          @@paths_found AS paths_found;
 }
-
-INSTALL QUERY ghostshield_path_find
-

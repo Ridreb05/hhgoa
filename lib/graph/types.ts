@@ -238,6 +238,8 @@ export interface GraphNode {
   label: string;
   category: NodeCategory;
   is_risk_seed?: boolean;
+  risk_score?: number;
+  community_id?: string;
   highlighted?: boolean;
   details?: Record<string, any>;
   x?: number;
@@ -266,7 +268,7 @@ export interface GraphTopology {
 // ------------------------------------------------------------------------------
 export interface SybilClusterRecord {
   root_entity_id: string;
-  root_type: 'FundingSource' | 'Agent';
+  root_type: 'FundingSource' | 'Agent' | 'Community';
   root_label: string;
   category: string;
   member_count: number;
@@ -323,14 +325,23 @@ export interface ProviderHealth {
   details?: Record<string, any>;
 }
 
+export interface RiskPropagationResult {
+  engine_mode: EngineMode;
+  seed_wallets: number;
+  tainted_wallets: number;
+  top_risk_wallets: { wallet_id: string; label: string; score: number; hop: number }[];
+  query_latency_ms: number;
+}
+
 export interface GraphProvider {
   readonly mode: EngineMode;
   getDashboardMetrics(): Promise<DashboardMetrics>;
   investigateWallet(walletId: string, maxHops?: number): Promise<WalletInvestigation>;
   detectCycles(timeWindowSeconds?: number, maxDepth?: number): Promise<CycleDetectionResult>;
   getRiskEvidence(walletId: string, candidate?: CandidateTransaction): Promise<RiskEvidence>;
-  getGraphTopology(): Promise<GraphTopology>;
+  getGraphTopology(centerId?: string): Promise<GraphTopology>;
   findPath(sourceWalletId: string, targetWalletId: string, maxHops?: number): Promise<PathFindResult>;
   getSybilClusters(minClusterSize?: number): Promise<SybilClusterResult>;
+  getRiskPropagation(maxHops?: number, limit?: number): Promise<RiskPropagationResult>;
   checkHealth(): Promise<ProviderHealth>;
 }

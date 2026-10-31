@@ -18,7 +18,7 @@ graph TD
 * **Framework:** Next.js 14+ (App Router) with full-stack TypeScript (strict mode enabled).
 * **Styling & UI:** Tailwind CSS with a security operations center (SOC) dark theme, custom responsive grid, and Lucide React icons.
 * **Graph Visualization:** Interactive HTML5 Canvas / SVG graph explorer with physics-based force layout, pan/zoom, node-type color coding, and path highlighting for evidence inspection.
-* **Database Engine:** TigerGraph 3.x / 4.x on TigerGraph Cloud running custom compiled GSQL queries.
+* **Database Engine:** TigerGraph 4.x (Savanna) running installed GSQL queries. Heavy lifting (temporal pattern matching, community detection, taint propagation, path search) happens in-engine; the adapter only shapes results.
 * **Testing Framework:** Vitest for rapid unit/integration testing with zero-config TypeScript compilation; automated synthetic evaluation suite for precision/recall benchmarking.
 
 ---
@@ -75,3 +75,11 @@ graph TD
 * Endpoint: Configurable webhook URL (`VIASOCKET_WEBHOOK_URL`).
 * Payload: Compact incident alert containing `investigationId`, `timestamp`, `walletId`, `riskScore`, `recommendedAction`, and `primaryEvidence`.
 * Resilience: Timeout after 4000ms, non-blocking execution, failure logging without disrupting user transaction simulation.
+
+
+## 4. Why a graph database (and what is deliberately not claimed)
+
+* Round-trip detection, multi-hop path search and taint propagation are traversals whose cost is driven by neighborhood size, not table size. They run as installed queries and return bounded results.
+* Hub pruning is a graph-level decision: an exchange funding thousands of wallets is evidence of nothing, while a burner funding twelve wallets in an hour is. The community query encodes that with degree caps and time-bucketed funding bursts.
+* **Not claimed:** accuracy on real chains (data is synthetic), or throughput at billions of edges (the largest run is ~108k edges on the smallest workspace). The numbers in [`BENCHMARK.md`](BENCHMARK.md) are for a known, planted structure.
+* **Known limit:** `TRANSFERRED_TO` keeps one edge per ordered wallet pair. See [`TIGERGRAPH_SETUP.md`](TIGERGRAPH_SETUP.md) section 5 for the discriminator migration path.

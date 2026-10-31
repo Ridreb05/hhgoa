@@ -45,8 +45,8 @@ export function SybilClustersView({ onSelectWallet }: SybilClustersViewProps) {
 
   const filteredClusters = (clustersResult?.clusters || []).filter((c) => {
     if (filterType === 'all') return true;
-    if (filterType === 'funding') return c.root_type === 'FundingSource';
-    if (filterType === 'agent') return c.root_type === 'Agent';
+    if (filterType === 'funding') return c.root_type === 'FundingSource' || (c.root_type === 'Community' && /FUNDING|MIXER/.test(c.category));
+    if (filterType === 'agent') return c.root_type === 'Agent' || (c.root_type === 'Community' && /AGENT/.test(c.category));
     return true;
   });
 
@@ -60,7 +60,7 @@ export function SybilClustersView({ onSelectWallet }: SybilClustersViewProps) {
             <span>SYBIL SYNDICATE & SHARED ORIGIN CLUSTERS</span>
           </h2>
           <p className="text-xs text-[#c9ced8] mt-1 font-sans">
-            GSQL relational community detection clustering wallets sharing high-degree upstream liquidity origins or common agent controllers.
+            In-engine GSQL community detection (connected components) linking wallets by shared low-fan-out agent control or coordinated funding bursts. Exchange crowds and large legitimate bot fleets are pruned as hubs.
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export function SybilClustersView({ onSelectWallet }: SybilClustersViewProps) {
                 className="financial-panel p-5 space-y-4 hover:border-[#c9ced8]/40 transition-all duration-[160ms] ease-out"
               >
                 {/* Cluster Card Header */}
-                <div className="flex items-start justify-between gap-3 border-b border-[#303139] pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#303139] pb-3">
                   <div className="flex items-center gap-2.5">
                     <div
                       className={`p-2 rounded-[5px] border ${
@@ -169,7 +169,7 @@ export function SybilClustersView({ onSelectWallet }: SybilClustersViewProps) {
                         </span>
                       </div>
                       <p className="text-xs text-[#c9ced8] font-mono mt-0.5">
-                        ROOT: {cluster.root_entity_id}
+                        ROOT: {cluster.root_entity_id.length > 24 ? `${cluster.root_entity_id.slice(0, 10)}…${cluster.root_entity_id.slice(-6)}` : cluster.root_entity_id}
                       </p>
                     </div>
                   </div>

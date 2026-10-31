@@ -28,7 +28,7 @@ describe('Deterministic Risk Policy Engine', () => {
     });
 
     expect(assessment.action).toBe('REJECT');
-    expect(assessment.score).toBeGreaterThanOrEqual(scA.expected_min_score);
+    expect(assessment.score).toBeGreaterThanOrEqual(scA.expected_min_score ?? 0);
     expect(assessment.detected_cycles.length).toBeGreaterThan(0);
     expect(assessment.shared_funding_sources.length).toBeGreaterThan(0);
   });
@@ -51,7 +51,7 @@ describe('Deterministic Risk Policy Engine', () => {
     });
 
     expect(assessment.action).toBe('ALLOW');
-    expect(assessment.score).toBeLessThanOrEqual(scB.expected_max_score);
+    expect(assessment.score).toBeLessThanOrEqual(scB.expected_max_score ?? 100);
     expect(assessment.detected_cycles.length).toBe(0);
   });
 
@@ -73,8 +73,8 @@ describe('Deterministic Risk Policy Engine', () => {
     });
 
     expect(assessment.action).toBe('ALLOW');
-    expect(assessment.score).toBeGreaterThanOrEqual(scC.expected_min_score);
-    expect(assessment.score).toBeLessThanOrEqual(scC.expected_max_score);
+    expect(assessment.score).toBeGreaterThanOrEqual(scC.expected_min_score ?? 0);
+    expect(assessment.score).toBeLessThanOrEqual(scC.expected_max_score ?? 100);
   });
 
   it('correctly identifies direct exposure to known-risk seed in Scenario D', async () => {

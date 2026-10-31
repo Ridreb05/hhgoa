@@ -18,7 +18,7 @@ CREATE VERTEX Wallet (
     creation_time INT,
     provenance STRING,
     is_risk_seed BOOL
-) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+) WITH STATS="OUTDEGREE_BY_EDGETYPE"
 
 // 2. FundingSource: Upstream liquidity origins (mixers, CEX hot wallets, bridges, treasuries)
 CREATE VERTEX FundingSource (
@@ -26,7 +26,7 @@ CREATE VERTEX FundingSource (
     category STRING,
     label STRING,
     provenance STRING
-) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+) WITH STATS="OUTDEGREE_BY_EDGETYPE"
 
 // 3. Agent: Autonomous off-chain / on-chain AI or algorithmic decision agents
 CREATE VERTEX Agent (
@@ -34,7 +34,7 @@ CREATE VERTEX Agent (
     display_name STRING,
     agent_type STRING,
     provenance STRING
-) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+) WITH STATS="OUTDEGREE_BY_EDGETYPE"
 
 // 4. SmartContract: On-chain protocols, liquidity pools, routers, tokens
 CREATE VERTEX SmartContract (
@@ -42,7 +42,7 @@ CREATE VERTEX SmartContract (
     network STRING,
     protocol STRING,
     category STRING
-) WITH STATS="OUTDEGREE_BY_EDGETYPE";
+) WITH STATS="OUTDEGREE_BY_EDGETYPE"
 
 // ------------------------------------------------------------------------------
 // Edge Definitions
@@ -56,41 +56,41 @@ CREATE DIRECTED EDGE TRANSFERRED_TO (
     asset STRING, 
     event_timestamp INT, 
     tx_id STRING
-) WITH REVERSE_EDGE="REVERSE_TRANSFERRED_TO";
+) WITH REVERSE_EDGE="REVERSE_TRANSFERRED_TO"
 
 // Upstream funding events into wallets
 CREATE DIRECTED EDGE FUNDED (
-    FROM FundingSource, 
-    TO Wallet, 
-    funding_timestamp INT, 
-    amount DOUBLE, 
-    event_id STRING
-) WITH REVERSE_EDGE="FUNDED_BY";
+    FROM FundingSource,
+    TO Wallet,
+    amount DOUBLE,
+    funding_timestamp INT,
+    tx_id STRING
+) WITH REVERSE_EDGE="FUNDED_BY"
 
 // Off-chain or cryptographic authority exerted by an agent over a wallet
 CREATE DIRECTED EDGE CONTROLS (
-    FROM Agent, 
-    TO Wallet, 
-    provenance STRING, 
-    recorded_at INT
-) WITH REVERSE_EDGE="CONTROLLED_BY";
+    FROM Agent,
+    TO Wallet,
+    authority_level STRING,
+    delegation_timestamp INT
+) WITH REVERSE_EDGE="CONTROLLED_BY"
 
 // Multi-tier agent delegation hierarchies
 CREATE DIRECTED EDGE DELEGATES_TO (
-    FROM Agent, 
-    TO Agent, 
-    delegation_type STRING, 
-    recorded_at INT
-) WITH REVERSE_EDGE="DELEGATED_FROM";
+    FROM Agent,
+    TO Agent,
+    role STRING,
+    depth INT
+) WITH REVERSE_EDGE="DELEGATED_FROM"
 
 // Protocol interactions executed by wallets
 CREATE DIRECTED EDGE INTERACTS_WITH (
-    FROM Wallet, 
-    TO SmartContract, 
-    interaction_timestamp INT, 
-    tx_id STRING, 
-    interaction_type STRING
-) WITH REVERSE_EDGE="INTERACTED_BY";
+    FROM Wallet,
+    TO SmartContract,
+    method STRING,
+    interaction_timestamp INT,
+    tx_id STRING
+) WITH REVERSE_EDGE="INTERACTED_BY"
 
 // ------------------------------------------------------------------------------
 // Graph Definition
@@ -110,4 +110,4 @@ CREATE GRAPH GhostShieldGraph (
     DELEGATED_FROM,
     INTERACTS_WITH,
     INTERACTED_BY
-);
+)

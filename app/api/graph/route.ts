@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const modeParam = searchParams.get('mode') as EngineMode | null;
     const provider = getGraphProvider(modeParam || undefined);
 
-    const topology = await provider.getGraphTopology();
+    const topology = await provider.getGraphTopology(searchParams.get('center') || undefined);
     return NextResponse.json(topology);
   } catch (error: any) {
     return NextResponse.json(

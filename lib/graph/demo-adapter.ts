@@ -528,6 +528,11 @@ export class DemoGraphAdapter implements GraphProvider {
     return { nodes, links };
   }
 
+  /**
+   * Fixture-grade grouping by funder / controlling agent. The live query
+   * (ghostshield_sybil_clusters) is different on purpose: connected components with hub pruning
+   * and funding-burst detection, which only make sense at scale.
+   */
   public async getSybilClusters(minClusterSize: number = 2): Promise<import('./types').SybilClusterResult> {
     const startTime = performance.now();
     const clusters: import('./types').SybilClusterRecord[] = [];
@@ -665,6 +670,55 @@ export class DemoGraphAdapter implements GraphProvider {
       paths_found: discoveredPaths.length,
       paths: discoveredPaths,
       query_latency_ms: latency,
+    };
+  }
+
+  /** Mirrors database/tigergraph/queries/ghostshield_risk_propagation.gsql (haircut taint model). */
+  public async getRiskPropagation(maxHops: number = 4, limit: number = 25): Promise<import('./types').RiskPropagationResult> {
+    const startTime = performance.now();
+    const decay = 0.9;
+    const outTotal = new Map<string, number>();
+    const outgoing = new Map<string, TransferEdge[]>();
+    for (const t of this.transfers) {
+      outTotal.set(t.from, (outTotal.get(t.from) || 0) + t.amount);
+      outgoing.set(t.from, [...(outgoing.get(t.from) || []), t]);
+    }
+
+    const score = new Map<string, number>();
+    const hop = new Map<string, number>();
+    let frontier = new Map<string, number>();
+    for (const w of this.wallets.values()) {
+      if (w.is_risk_seed) frontier.set(w.id, 1);
+    }
+    const seedCount = frontier.size;
+
+    for (let step = 1; step <= maxHops && frontier.size > 0; step++) {
+      const next = new Map<string, number>();
+      for (const [id, send] of frontier) {
+        for (const t of outgoing.get(id) || []) {
+          if (this.wallets.get(t.to)?.is_risk_seed) continue;
+          const share = decay * send * (t.amount / (outTotal.get(id) || 1));
+          next.set(t.to, (next.get(t.to) || 0) + share);
+        }
+      }
+      for (const [id, recv] of next) {
+        score.set(id, (score.get(id) || 0) + recv);
+        if (!hop.has(id)) hop.set(id, step);
+      }
+      frontier = next;
+    }
+
+    const ranked = [...score.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([id, sc]) => ({ wallet_id: id, label: this.wallets.get(id)?.label || id, score: parseFloat(sc.toFixed(4)), hop: hop.get(id) || 0 }));
+
+    return {
+      engine_mode: 'demo',
+      seed_wallets: seedCount,
+      tainted_wallets: score.size,
+      top_risk_wallets: ranked,
+      query_latency_ms: Math.max(1, Math.round(performance.now() - startTime)),
     };
   }
 

@@ -1,117 +1,59 @@
-# GhostShield: TigerGraph Cloud Setup & GSQL Deployment Guide
+# GhostShield on TigerGraph Savanna
 
-This document provides step-by-step instructions to deploy the GhostShield schema, compile the GSQL queries, load the demo dataset, and connect GhostShield to a live **TigerGraph Cloud** instance.
-
----
+Everything below is scripted and idempotent. Nothing here drops data.
 
 ## 1. Prerequisites
 
-* A **TigerGraph Cloud** account (sign up free at [tgcloud.io](https://tgcloud.io)) OR a local TigerGraph 3.x/4.x Docker instance.
-* Terminal with `curl` or the `gsql` CLI client.
+* A TigerGraph **Savanna** workspace (free tier works): <https://tgcloud.io>. Resume it if it shows *Idle*.
+* A database **secret**: *Database Secrets → Create Secret* (32 characters). Secrets authenticate with a JWT, so the password is not needed.
+* Node 20+.
 
----
-
-## 2. Step 1: Provision a TigerGraph Cloud Cluster
-
-1. Log in to [TigerGraph Cloud Console](https://tgcloud.io).
-2. Click **Create Cluster**.
-3. Choose **TigerGraph Version 3.x or 4.x** (Evaluation Tier: Free tier `tg.free` is sufficient).
-4. Enter cluster name: `ghostshield-cluster`.
-5. Set your administrative password (e.g. `tigergraph`).
-6. Click **Configure Cluster** and wait for cluster status to show **Ready** (approx. 3–5 minutes).
-7. Note your public cluster URL, e.g.:
-   ```text
-   https://ghostshield-cluster.i.tgcloud.io
-   ```
-
----
-
-## 3. Step 2: Deploy Schema & Compile GSQL Queries
-
-You can execute the GSQL scripts either via **GraphStudio** in the browser or using the GSQL command line.
-
-### Option A: Via Command Line (Recommended)
-From the root of the GhostShield repository, execute:
+## 2. Configure `.env.local`
 
 ```bash
-# Connect to your TigerGraph Cloud instance
-gsql -u tigergraph -p "<your_password>" -ip "ghostshield-cluster.i.tgcloud.io"
-
-# Inside the GSQL shell, execute the setup script:
-@database/tigergraph/setup_graph.gsql
-```
-
-The script will:
-1. Drop any previous conflicting types or graphs.
-2. Define the 4 vertices (`Wallet`, `FundingSource`, `Agent`, `SmartContract`) and 5 directed edges (`TRANSFERRED_TO`, `FUNDED`, `CONTROLS`, `DELEGATES_TO`, `INTERACTS_WITH`).
-3. Instantiate `GhostShieldGraph`.
-4. Compile and install all four queries:
-   * `ghostshield_dashboard_metrics`
-   * `ghostshield_detect_cycles`
-   * `ghostshield_investigate_wallet`
-   * `ghostshield_risk_evidence`
-
-### Option B: Via GraphStudio Web Console
-1. Open GraphStudio by clicking **GraphStudio** in the TigerGraph Cloud dashboard.
-2. Navigate to **Design Schema** → click **Import Existing Schema** or copy-paste `database/tigergraph/schema.gsql`. Click **Publish Schema**.
-3. Navigate to **Write Queries** → create the 4 queries from `database/tigergraph/queries/`.
-4. Click **Install All Queries** (this triggers C++ code generation and compilation into REST++ endpoints).
-
----
-
-## 4. Step 3: Ingest Synthetic Dataset
-
-Load the 12 wallets, 5 funding sources, 3 agents, 3 contracts, and transaction edges using the automated loading job:
-
-```bash
-# Execute the loading job
-gsql -u tigergraph -p "<your_password>" -g GhostShieldGraph database/tigergraph/load_data.gsql
-```
-
-Verify ingestion by running:
-```bash
-gsql -u tigergraph -p "<your_password>" -g GhostShieldGraph "SELECT count() FROM Wallet;"
-```
-
-Expected count: `12` vertices.
-
----
-
-## 5. Step 4: Configure GhostShield Environment Variables
-
-In your local `.env.local` or environment configuration, specify your live TigerGraph credentials:
-
-```bash
-# Enable Live TigerGraph Cloud Mode
 GHOSTSHIELD_ENGINE_MODE=tigergraph
-
-# TigerGraph REST++ Endpoint (Port 9000 or Cloud HTTPS URL)
-TIGERGRAPH_HOST=https://ghostshield-cluster.i.tgcloud.io
+TIGERGRAPH_HOST=https://tg-xxxxxxxx.tg-yyyyyyyy.i.tgcloud.io   # workgroup host, shown in the console network calls / Connect panel
 TIGERGRAPH_GRAPH_NAME=GhostShieldGraph
-TIGERGRAPH_USERNAME=tigergraph
-TIGERGRAPH_PASSWORD=your_password_here
-
-# Optional: Secret token auth (if generated via GraphStudio)
-# TIGERGRAPH_SECRET=your_graph_secret_here
-
-# Query Timeout in Milliseconds
-TIGERGRAPH_TIMEOUT_MS=8000
+TIGERGRAPH_SECRET=<32 character secret>
 ```
 
----
+`TIGERGRAPH_USERNAME` / `TIGERGRAPH_PASSWORD` are only a fallback; Savanna enterprise workspaces usually reject basic auth.
 
-## 6. Step 5: Verify Live Query Execution
+## 3. Install schema, queries and data
 
-Restart the GhostShield application:
 ```bash
-npm run dev
+npm run tg:setup                                 # schema (+ migrations) -> create queries -> compile & install
+npm run seed:tigergraph -- --wallets 20000       # loading job: demo scenarios + 18k wallet / 108k edge scale dataset
+npm run evaluate:live                            # scores detectors against planted ground truth, writes docs/BENCHMARK.md
+npm run test:live                                # integration tests against the cluster
 ```
 
-1. Open `http://localhost:3000` in your browser.
-2. Observe the header badge: it will now display **TIGERGRAPH LIVE** with a green status indicator.
-3. Observe the Query Latency pill: it will report real measured round-trip REST++ latency (typically 20–45ms depending on geographic distance).
-4. Open the **System Status** tab and verify the TigerGraph status card reports:
-   ```text
-   [ONLINE] Connected to TigerGraph server at https://ghostshield-cluster.i.tgcloud.io (GhostShieldGraph)
-   ```
-5. Run **Scenario A** in the Transaction Simulator. The query will execute against the live database, evaluate temporal cycle constraints in C++ GSQL, and return verified topological evidence.
+What each step does:
+
+| Step | Detail |
+|---|---|
+| `tg:schema` | Creates `GhostShieldGraph` if missing, then applies `database/tigergraph/migrations/*`. Migration 001 adds an `id` attribute to every vertex type (primary ids are not addressable inside a query body), plus `risk_score` and `community_id` on `Wallet` for algorithm write-back. |
+| `tg:queries` | `CREATE OR REPLACE QUERY` for every file in `database/tigergraph/queries/`. Reports compile errors per file. |
+| `tg:install` | `INSTALL QUERY ALL` (1 to 3 minutes the first time). |
+| `seed:tigergraph` | Creates the `ghostshield_load` loading job (`database/tigergraph/loading/`) and streams CSV to `/restpp/ddl`. Use `--from transfers` to resume an interrupted load. The load is idempotent. |
+
+The scale dataset is deterministic (`--seed`). Ground truth for the planted patterns is written to `data/generated/ground_truth.json` (git-ignored).
+
+## 4. Queries
+
+| Query | Purpose |
+|---|---|
+| `ghostshield_dashboard_metrics` | Global counts, volume, risk seeds |
+| `ghostshield_detect_cycles` | Temporally ordered round trips of 3 to 5 hops inside a time window (pattern matching) |
+| `ghostshield_sybil_clusters` | Connected components over agent control and funding bursts, with hub pruning |
+| `ghostshield_risk_propagation` | Value-weighted taint propagation from known-bad seeds (BSP supersteps), optional write-back |
+| `ghostshield_path_find` | All simple 1 to 4 hop paths between two wallets, optional temporal ordering |
+| `ghostshield_investigate_wallet` | 1-hop forensic neighborhood |
+| `ghostshield_risk_evidence` | Evidence counters feeding the deterministic policy engine |
+| `ghostshield_topology` | Bounded subgraph for the explorer |
+
+## 5. Known modeling limits
+
+* `TRANSFERRED_TO` has no discriminator, so there is **one edge per ordered wallet pair**. A production deployment should model each transaction as its own edge (an edge type with `DISCRIMINATOR(tx_id)`), which needs a new edge type and a reload.
+* Cycle detection covers 3 to 5 hops. Longer loops need a different algorithm; pattern matching cost grows with each hop.
+* The Savanna proxy cuts requests at roughly 8 seconds, so ingestion is chunked (250 rows per request) and retried.

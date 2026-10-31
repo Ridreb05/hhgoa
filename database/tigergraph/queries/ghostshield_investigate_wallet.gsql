@@ -1,6 +1,8 @@
 // ==============================================================================
 // GSQL Query C: ghostshield_investigate_wallet
-// Pure GSQL v1 multi-hop wallet investigation
+// Bounded 1-hop forensic neighborhood of a wallet: transfers (both directions),
+// upstream funding, shared-funder peers, controlling agents, protocol
+// interactions and adjacent known-risk wallets. All ids are primary ids.
 // ==============================================================================
 
 USE GRAPH GhostShieldGraph
@@ -23,50 +25,66 @@ CREATE OR REPLACE QUERY ghostshield_investigate_wallet(
     ListAccum<ContractRecord> @@contracts;
     ListAccum<RiskSeedRecord> @@risk_seeds_nearby;
     SetAccum<STRING> @@shared_funding_wallets;
+    SumAccum<INT> @@outgoing_total;
+    SumAccum<INT> @@incoming_total;
 
     Start = { target_wallet };
 
-    // 1. Direct Outgoing Transfers
-    OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-            ACCUM @@transfers += TransferRecord(src.label, tgt.label, e.amount, e.asset, e.event_timestamp, e.tx_id, "OUTGOING")
-            LIMIT transfer_limit;
+    // 1. Outgoing transfers (total counted, list bounded)
+    OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO>:e)- Wallet:tgt
+            ACCUM @@outgoing_total += 1,
+                  IF @@transfers.size() < transfer_limit THEN
+                      @@transfers += TransferRecord(src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id, "OUTGOING")
+                  END;
 
-    // 2. Direct Incoming Transfers
-    InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO:e)-> Wallet:src
-           ACCUM @@transfers += TransferRecord(src.label, tgt.label, e.amount, e.asset, e.event_timestamp, e.tx_id, "INCOMING")
-           LIMIT transfer_limit;
+    // 2. Incoming transfers
+    InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO>:e)- Wallet:src
+           ACCUM @@incoming_total += 1,
+                 IF @@transfers.size() < 2 * transfer_limit THEN
+                     @@transfers += TransferRecord(src.id, tgt.id, e.amount, e.asset, e.event_timestamp, e.tx_id, "INCOMING")
+                 END;
 
-    // 3. Direct Upstream Funding Sources
-    Funding = SELECT fs FROM Start:tgt -(FUNDED_BY:e)-> FundingSource:fs
-              ACCUM @@funding_sources += FundingRecord(fs.label, fs.category, fs.label, e.amount, e.funding_timestamp, e.tx_id);
+    // 3. Upstream funding sources
+    Funding = SELECT fs FROM Start:tgt -(FUNDED_BY>:e)- FundingSource:fs
+              ACCUM @@funding_sources += FundingRecord(fs.id, fs.category, fs.label, e.amount, e.funding_timestamp, e.tx_id);
 
-    // 4. Shared Funding Counterparties
-    SharedWallets = SELECT w FROM Funding:fs -(FUNDED:e)-> Wallet:w
+    // 4. Wallets sharing a funder
+    SharedWallets = SELECT w FROM Funding:fs -(FUNDED>:e)- Wallet:w
                     WHERE w != target_wallet
-                    ACCUM @@shared_funding_wallets += w.label
-                    LIMIT neighbor_limit;
+                    ACCUM IF @@shared_funding_wallets.size() < neighbor_limit THEN @@shared_funding_wallets += w.id END;
 
-    // 5. Associated Controlling Agents
-    Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY:e)-> Agent:a
-             ACCUM @@agents += AgentRecord(a.display_name, a.display_name, a.agent_type, "", "");
+    // 5. Controlling agents and their delegation partners
+    Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY>:e)- Agent:a
+             ACCUM @@agents += AgentRecord(a.id, a.display_name, a.agent_type, "", "");
 
-    // 6. Connected Smart Contracts
-    Contracts = SELECT sc FROM Start:w -(INTERACTS_WITH:e)-> SmartContract:sc
-                ACCUM @@contracts += ContractRecord(sc.protocol, sc.protocol, sc.category, e.method, e.interaction_timestamp)
-                LIMIT neighbor_limit;
+    Delegations = SELECT a2 FROM Agents:a1 -(DELEGATES_TO>:e)- Agent:a2
+                  ACCUM @@agents += AgentRecord(a1.id, a1.display_name, a1.agent_type, a2.id, e.role);
 
-    // 7. Known-Risk Proximity (Two separate 1-hop queries in standard GSQL v1)
-    OutRisk = SELECT w FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:w
+    // 6. Protocol interactions
+    Contracts = SELECT sc FROM Start:w -(INTERACTS_WITH>:e)- SmartContract:sc
+                ACCUM IF @@contracts.size() < neighbor_limit THEN
+                          @@contracts += ContractRecord(sc.id, sc.protocol, sc.category, e.method, e.interaction_timestamp)
+                      END;
+
+    // 7. Known-risk proximity
+    OutRisk = SELECT w FROM Start:src -(TRANSFERRED_TO>:e)- Wallet:w
               WHERE w.is_risk_seed
-              ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.label, "Wallet", 1, "Direct transfer counterparty with risk seed");
+              ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.id, "Wallet", 1, "Sent funds to a known-risk wallet");
 
-    InRisk = SELECT w FROM Start:src -(REVERSE_TRANSFERRED_TO:e)-> Wallet:w
+    InRisk = SELECT w FROM Start:src -(REVERSE_TRANSFERRED_TO>:e)- Wallet:w
              WHERE w.is_risk_seed
-             ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.label, "Wallet", 1, "Direct transfer counterparty with risk seed");
+             ACCUM @@risk_seeds_nearby += RiskSeedRecord(w.id, "Wallet", 1, "Received funds from a known-risk wallet");
 
-    PRINT target_wallet.label AS investigated_wallet_id,
+    PRINT target_wallet.id AS investigated_wallet_id,
           target_wallet.label AS wallet_label,
+          target_wallet.network AS network,
+          target_wallet.creation_time AS creation_time,
+          target_wallet.provenance AS provenance,
           target_wallet.is_risk_seed AS is_target_risk_seed,
+          target_wallet.risk_score AS risk_score,
+          target_wallet.community_id AS community_id,
+          @@outgoing_total AS outgoing_tx_total,
+          @@incoming_total AS incoming_tx_total,
           @@transfers AS transfers,
           @@funding_sources AS direct_funding_sources,
           @@shared_funding_wallets AS shared_funding_peer_wallets,

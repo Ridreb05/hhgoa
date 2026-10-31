@@ -1,6 +1,16 @@
 // ==============================================================================
 // GSQL Query B: ghostshield_detect_cycles
-// Pure GSQL v1 standard hop-by-hop cycle detection
+// Temporally ordered round trips (A -> B -> ... -> A) of 3..5 hops that close
+// inside time_window_seconds, via hop-by-hop temporal state propagation:
+//   every wallet carries the partial paths that reached it inside the window;
+//   a state is extended only through an edge that is later than the previous hop
+//   and still inside the window, and a cycle is recorded when an edge returns to
+//   the path's origin. The window keeps the state sets tiny, which is what makes
+//   this scale. (Pattern matching with cross-edge timestamp comparisons in WHERE
+//   was observed NOT to be enforced, and enumerating all topological cycles
+//   first exceeds the 60s query timeout on 80k edges.)
+// scope: only transfers whose sender's provenance starts with this prefix seed cycles ("" = all).
+// Paths never repeat a wallet; the time order selects one rotation per cycle.
 // ==============================================================================
 
 USE GRAPH GhostShieldGraph
@@ -8,7 +18,8 @@ USE GRAPH GhostShieldGraph
 CREATE OR REPLACE QUERY ghostshield_detect_cycles(
     INT time_window_seconds = 600,
     INT max_depth = 4,
-    INT result_limit = 50
+    INT result_limit = 200,
+    STRING scope = ""
 ) FOR GRAPH GhostShieldGraph {
     TYPEDEF TUPLE<
         STRING cycle_path,
@@ -23,35 +34,140 @@ CREATE OR REPLACE QUERY ghostshield_detect_cycles(
         STRING risk_level
     > CycleRecord;
 
+    // path = "|a|b|" (membership test), disp = "a -> b" (display)
+    TYPEDEF TUPLE<STRING origin, INT t0, INT t1, STRING path, STRING disp, DOUBLE first, DOUBLE lo, DOUBLE hi> State;
+
+    SetAccum<State> @s1;
+    SetAccum<State> @s2;
+    SetAccum<State> @s3;
+    SetAccum<State> @s4;
     ListAccum<CycleRecord> @@detected_cycles;
-    MapAccum<VERTEX<Wallet>, INT> @start_times;
+    SumAccum<INT> @@total_cycles;
 
-    // Hop 1: Wallet -> Counterparty
-    H1 = SELECT tgt FROM Wallet:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-         ACCUM tgt.@start_times += (src -> e.event_timestamp);
+    // ---- hop 1: every transfer starts a state at its receiver ----
+    Init = SELECT t
+           FROM Wallet:s -(TRANSFERRED_TO>:e)- Wallet:t
+           WHERE s != t AND (scope == "" OR instr(s.provenance, scope) == 0)
+           ACCUM t.@s1 += State(s.id, e.event_timestamp, e.event_timestamp, "|" + s.id + "|" + t.id + "|",
+                                s.id + " -> " + t.id, e.amount, e.amount, e.amount);
 
-    // Hop 2: Counterparty -> Intermediate
-    H2 = SELECT tgt FROM H1:src -(TRANSFERRED_TO:e)-> Wallet:tgt;
+    // ---- hop 2: extend states of length 1 ----
+    IF max_depth >= 2 THEN
+        L1 = SELECT t FROM Wallet:t WHERE t.@s1.size() > 0;
+        X1 = SELECT t
+               FROM L1:s -(TRANSFERRED_TO>:e)- Wallet:t
+               ACCUM
+                   FOREACH st IN s.@s1 DO
+                       IF e.event_timestamp >= st.t1 AND e.event_timestamp - st.t0 <= time_window_seconds THEN
+                    IF max_depth > 2 AND t.id != st.origin AND instr(st.path, "|" + t.id + "|") < 1 THEN
+                        t.@s2 += State(st.origin, st.t0, e.event_timestamp, st.path + t.id + "|", st.disp + " -> " + t.id,
+                                        st.first,
+                                        CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                        CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END)
+                    END
+                       END
+                   END;
+    END;
 
-    // Hop 3: Intermediate -> Original Sender (Cycle completed)
-    H3 = SELECT tgt FROM H2:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-         ACCUM
-             IF tgt.@start_times.containsKey(tgt) THEN
-                 @@detected_cycles += CycleRecord(
-                     tgt.label + " -> " + src.label + " -> " + tgt.label,
-                     3,
-                     tgt.@start_times.get(tgt),
-                     e.event_timestamp,
-                     abs(e.event_timestamp - tgt.@start_times.get(tgt)),
-                     e.amount,
-                     e.amount,
-                     1.0,
-                     TRUE,
-                     "HIGH"
-                 )
-             END
-         LIMIT result_limit;
+    // ---- hop 3: extend states of length 2 and close cycles ----
+    IF max_depth >= 3 THEN
+        L2 = SELECT t FROM Wallet:t WHERE t.@s2.size() > 0;
+        X2 = SELECT t
+               FROM L2:s -(TRANSFERRED_TO>:e)- Wallet:t
+               ACCUM
+                   FOREACH st IN s.@s2 DO
+                       IF e.event_timestamp >= st.t1 AND e.event_timestamp - st.t0 <= time_window_seconds THEN
+                    IF t.id == st.origin THEN
+                        @@total_cycles += 1,
+                        IF @@detected_cycles.size() < result_limit THEN
+                            @@detected_cycles += CycleRecord(
+                                st.disp + " -> " + t.id,
+                                3,
+                                st.t0,
+                                e.event_timestamp,
+                                e.event_timestamp - st.t0,
+                                CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END,
+                                e.amount / st.first,
+                                TRUE,
+                                "HIGH"
+                            )
+                        END
+                    END,
+                    IF max_depth > 3 AND t.id != st.origin AND instr(st.path, "|" + t.id + "|") < 1 THEN
+                        t.@s3 += State(st.origin, st.t0, e.event_timestamp, st.path + t.id + "|", st.disp + " -> " + t.id,
+                                        st.first,
+                                        CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                        CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END)
+                    END
+                       END
+                   END;
+    END;
+
+    // ---- hop 4: extend states of length 3 and close cycles ----
+    IF max_depth >= 4 THEN
+        L3 = SELECT t FROM Wallet:t WHERE t.@s3.size() > 0;
+        X3 = SELECT t
+               FROM L3:s -(TRANSFERRED_TO>:e)- Wallet:t
+               ACCUM
+                   FOREACH st IN s.@s3 DO
+                       IF e.event_timestamp >= st.t1 AND e.event_timestamp - st.t0 <= time_window_seconds THEN
+                    IF t.id == st.origin THEN
+                        @@total_cycles += 1,
+                        IF @@detected_cycles.size() < result_limit THEN
+                            @@detected_cycles += CycleRecord(
+                                st.disp + " -> " + t.id,
+                                4,
+                                st.t0,
+                                e.event_timestamp,
+                                e.event_timestamp - st.t0,
+                                CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END,
+                                e.amount / st.first,
+                                TRUE,
+                                "HIGH"
+                            )
+                        END
+                    END,
+                    IF max_depth > 4 AND t.id != st.origin AND instr(st.path, "|" + t.id + "|") < 1 THEN
+                        t.@s4 += State(st.origin, st.t0, e.event_timestamp, st.path + t.id + "|", st.disp + " -> " + t.id,
+                                        st.first,
+                                        CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                        CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END)
+                    END
+                       END
+                   END;
+    END;
+
+    // ---- hop 5: extend states of length 4 and close cycles ----
+    IF max_depth >= 5 THEN
+        L4 = SELECT t FROM Wallet:t WHERE t.@s4.size() > 0;
+        X4 = SELECT t
+               FROM L4:s -(TRANSFERRED_TO>:e)- Wallet:t
+               ACCUM
+                   FOREACH st IN s.@s4 DO
+                       IF e.event_timestamp >= st.t1 AND e.event_timestamp - st.t0 <= time_window_seconds THEN
+                    IF t.id == st.origin THEN
+                        @@total_cycles += 1,
+                        IF @@detected_cycles.size() < result_limit THEN
+                            @@detected_cycles += CycleRecord(
+                                st.disp + " -> " + t.id,
+                                5,
+                                st.t0,
+                                e.event_timestamp,
+                                e.event_timestamp - st.t0,
+                                CASE WHEN st.lo <= e.amount THEN st.lo ELSE e.amount END,
+                                CASE WHEN st.hi >= e.amount THEN st.hi ELSE e.amount END,
+                                e.amount / st.first,
+                                TRUE,
+                                "HIGH"
+                            )
+                        END
+                    END
+                       END
+                   END;
+    END;
 
     PRINT @@detected_cycles AS cycles,
-          @@detected_cycles.size() AS total_cycles_found;
+          @@total_cycles AS total_cycles_found;
 }

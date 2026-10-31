@@ -25,6 +25,8 @@ export interface TigerGraphConfig {
   secret?: string;
   token?: string;
   timeoutMs?: number;
+  /** Provenance prefix restricting global scans (several datasets can share one graph). "" = everything. */
+  scope?: string;
 }
 
 export class TigerGraphAdapter implements GraphProvider {
@@ -35,8 +37,10 @@ export class TigerGraphAdapter implements GraphProvider {
   private username?: string;
   private password?: string;
   private secret?: string;
-  private token?: string;
+  private token?: string; // static token from config/env, never refreshed
+  private jwt?: { value: string; expires: number };
   private timeoutMs: number;
+  private scope: string;
 
   constructor(config?: Partial<TigerGraphConfig>) {
     this.host = (config?.host || process.env.TIGERGRAPH_HOST || '').replace(/\/$/, '');
@@ -45,6 +49,7 @@ export class TigerGraphAdapter implements GraphProvider {
     this.password = config?.password || process.env.TIGERGRAPH_PASSWORD;
     this.secret = config?.secret || process.env.TIGERGRAPH_SECRET;
     this.token = config?.token || process.env.TIGERGRAPH_TOKEN;
+    this.scope = config?.scope ?? process.env.GHOSTSHIELD_SCOPE ?? '';
     this.timeoutMs = config?.timeoutMs || parseInt(process.env.TIGERGRAPH_TIMEOUT_MS || '8000', 10);
   }
 
@@ -65,10 +70,12 @@ export class TigerGraphAdapter implements GraphProvider {
 
     if (this.secret) {
       try {
-        const tokenRes = await this.requestToken(this.secret);
-        if (tokenRes) {
-          this.token = tokenRes;
-          headers['Authorization'] = `Bearer ${this.token}`;
+        if (!this.jwt || this.jwt.expires < Date.now() + 60_000) {
+          const value = await this.requestToken(this.secret);
+          if (value) this.jwt = { value, expires: Date.now() + 55 * 60_000 };
+        }
+        if (this.jwt) {
+          headers['Authorization'] = `Bearer ${this.jwt.value}`;
           return headers;
         }
       } catch (err) {
@@ -85,20 +92,23 @@ export class TigerGraphAdapter implements GraphProvider {
   }
 
   private async requestToken(secret: string): Promise<string | null> {
-    const url = `${this.host}/restpp/requesttoken`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret }),
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-
-    if (!res.ok) {
-      throw new Error(`TigerGraph requesttoken HTTP ${res.status}: ${res.statusText}`);
+    // Savanna (4.x) issues tokens at /gsql/v1/tokens; legacy clusters use /restpp/requesttoken.
+    const endpoints = [`${this.host}/gsql/v1/tokens`, `${this.host}/restpp/requesttoken`];
+    let lastStatus = 0;
+    for (const url of endpoints) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret, lifetime: '3600' }),
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) return data.token;
+      }
+      lastStatus = res.status;
     }
-
-    const data = await res.json();
-    return data.token || null;
+    throw new Error(`TigerGraph token request HTTP ${lastStatus}`);
   }
 
   private async executeQuery<T>(queryName: string, params: Record<string, any> = {}): Promise<{ results: T; latencyMs: number }> {
@@ -120,13 +130,14 @@ export class TigerGraphAdapter implements GraphProvider {
     const qs = queryParams.toString();
     const url = `${this.host}/restpp/query/${encodeURIComponent(this.graphName)}/${encodeURIComponent(queryName)}${qs ? `?${qs}` : ''}`;
 
-    const headers = await this.getAuthHeaders();
+    const call = async () =>
+      fetch(url, { method: 'GET', headers: await this.getAuthHeaders(), signal: AbortSignal.timeout(this.timeoutMs) });
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    let response = await call();
+    if (response.status === 401 && this.secret) {
+      this.jwt = undefined; // expired or revoked: mint a new one and retry once
+      response = await call();
+    }
 
     const latencyMs = Math.round(performance.now() - startTime);
 
@@ -147,7 +158,7 @@ export class TigerGraphAdapter implements GraphProvider {
   }
 
   public async getDashboardMetrics(): Promise<DashboardMetrics> {
-    const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_dashboard_metrics');
+    const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_dashboard_metrics', { scope: this.scope });
     const firstResult = (results && results[0]) || {};
 
     return {
@@ -169,9 +180,11 @@ export class TigerGraphAdapter implements GraphProvider {
     const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_detect_cycles', {
       time_window_seconds: timeWindowSeconds,
       max_depth: maxDepth,
+      result_limit: 200,
+      scope: this.scope,
     });
 
-    const cycleData = results?.find((r) => r.cycles !== undefined);
+    const cycleData = Object.assign({}, ...(results || []));
     const rawCycles: any[] = cycleData?.cycles || [];
 
     const cycles: CycleRecord[] = rawCycles.map((c: any) => ({
@@ -192,7 +205,7 @@ export class TigerGraphAdapter implements GraphProvider {
       engine_mode: 'tigergraph',
       time_window_seconds: timeWindowSeconds,
       max_depth: maxDepth,
-      cycles_found: cycles.length,
+      cycles_found: cycleData?.total_cycles_found ?? cycles.length,
       cycles,
       query_latency_ms: latencyMs,
     };
@@ -204,16 +217,16 @@ export class TigerGraphAdapter implements GraphProvider {
       max_hops: maxHops,
     });
 
-    const res = results?.[0] || {};
+    const res: Record<string, any> = Object.assign({}, ...(results || []));
 
     return {
       engine_mode: 'tigergraph',
       target_wallet: {
         id: walletId,
-        network: 'ethereum',
+        network: res['network'] || 'ethereum',
         label: res['wallet_label'] || walletId,
-        creation_time: 0,
-        provenance: 'tigergraph_live',
+        creation_time: res['creation_time'] ?? 0,
+        provenance: res['provenance'] || 'tigergraph_live',
         is_risk_seed: Boolean(res['is_target_risk_seed']),
       },
       transfers: res['transfers'] || [],
@@ -234,7 +247,7 @@ export class TigerGraphAdapter implements GraphProvider {
       time_window_seconds: 600,
     });
 
-    const res = results?.[0] || {};
+    const res: Record<string, any> = Object.assign({}, ...(results || []));
 
     return {
       engine_mode: 'tigergraph',
@@ -257,39 +270,64 @@ export class TigerGraphAdapter implements GraphProvider {
     };
   }
 
-  public async getGraphTopology(): Promise<GraphTopology> {
-    // In live TigerGraph mode, retrieve the graph neighborhood via investigate or REST vertex endpoint
-    const metrics = await this.getDashboardMetrics();
-    return {
-      nodes: [
-        { id: 'TIGERGRAPH_LIVE_ROOT', label: 'TigerGraph Live Graph', category: 'wallet' },
-      ],
-      links: [],
-    };
+  public async getGraphTopology(centerId?: string): Promise<GraphTopology> {
+    const { results } = await this.executeQuery<any[]>('ghostshield_topology', centerId ? { center_id: centerId, hops: 2, scope: this.scope } : { scope: this.scope });
+    const out: Record<string, any> = Object.assign({}, ...(results || []));
+
+    const nodes: GraphTopology['nodes'] = [];
+    for (const v of out.wallets || []) {
+      nodes.push({
+        id: v.v_id,
+        label: v.attributes.label || v.v_id,
+        category: 'wallet',
+        is_risk_seed: Boolean(v.attributes.is_risk_seed),
+        risk_score: v.attributes.risk_score || 0,
+        community_id: v.attributes.community_id || undefined,
+        details: { network: v.attributes.network, creation_time: v.attributes.creation_time },
+      });
+    }
+    for (const v of out.funding_sources || []) {
+      nodes.push({ id: v.v_id, label: v.attributes.label || v.v_id, category: 'funding_source', details: { category: v.attributes.category, provenance: v.attributes.provenance } });
+    }
+    for (const v of out.agents || []) {
+      nodes.push({ id: v.v_id, label: v.attributes.display_name || v.v_id, category: 'agent', details: { type: v.attributes.agent_type, provenance: v.attributes.provenance } });
+    }
+    for (const v of out.contracts || []) {
+      nodes.push({ id: v.v_id, label: v.attributes.protocol || v.v_id, category: 'smart_contract', details: { network: v.attributes.network, category: v.attributes.category } });
+    }
+
+    const links: GraphTopology['links'] = (out.edges || []).map((e: any) => ({
+      source: e.from_id,
+      target: e.to_id,
+      type: e.e_type,
+      amount: e.attributes?.amount,
+      asset: e.attributes?.asset,
+      timestamp: e.attributes?.event_timestamp ?? e.attributes?.funding_timestamp,
+    }));
+
+    return { nodes, links };
   }
 
-  public async getSybilClusters(minClusterSize: number = 2): Promise<import('./types').SybilClusterResult> {
+  public async getSybilClusters(minClusterSize: number = 5): Promise<import('./types').SybilClusterResult> {
     const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_sybil_clusters', {
       min_cluster_size: minClusterSize,
-      result_limit: 20,
+      result_limit: 50,
+      scope: this.scope,
     });
-    const rawClusters = results?.[0]?.sybil_clusters || [];
-    const clusters: import('./types').SybilClusterRecord[] = rawClusters.map((c: any) => ({
+    const out: Record<string, any> = Object.assign({}, ...(results || []));
+    const clusters: import('./types').SybilClusterRecord[] = (out.sybil_clusters || []).map((c: any) => ({
       root_entity_id: c.root_entity_id,
       root_type: c.root_type,
-      root_label: c.root_label,
+      root_label: c.root_type === 'Community' ? `Coordinated cluster ${String(c.root_entity_id).slice(0, 6)}…${String(c.root_entity_id).slice(-4)}` : c.root_label,
       category: c.category,
       member_count: c.member_count,
-      member_wallets:
-        typeof c.member_wallets === 'string'
-          ? c.member_wallets.split(',').filter(Boolean)
-          : c.member_wallets || [],
-      total_cluster_volume: c.total_cluster_volume || 0,
+      member_wallets: typeof c.member_wallets === 'string' ? c.member_wallets.split(',').filter(Boolean) : c.member_wallets || [],
+      total_cluster_volume: parseFloat((c.total_cluster_volume || 0).toFixed(2)),
       risk_level: c.risk_level || 'MEDIUM',
     }));
     return {
       engine_mode: 'tigergraph',
-      clusters_identified: clusters.length,
+      clusters_identified: out.total_clusters_identified ?? clusters.length,
       clusters,
       query_latency_ms: latencyMs,
     };
@@ -305,20 +343,58 @@ export class TigerGraphAdapter implements GraphProvider {
       target_wallet: targetWalletId,
       max_hops: maxHops,
     });
-    const pathsData = results?.[0]?.paths || [];
-    const paths: import('./types').CompletePathRecord[] = pathsData.map((p: any) => ({
-      total_hops: p.total_hops,
-      total_volume: p.total_volume,
-      duration_seconds: p.duration_seconds,
-      path_string: p.path_string,
-      hops: p.hops || [],
-    }));
+    const out: Record<string, any> = Object.assign({}, ...(results || []));
+    const paths: import('./types').CompletePathRecord[] = (out.paths || [])
+      .map((p: any) => ({
+        total_hops: p.total_hops,
+        total_volume: parseFloat((p.total_volume || 0).toFixed(3)),
+        duration_seconds: p.duration_seconds,
+        path_string: p.path_string,
+        hops: String(p.hops || '')
+          .split(';')
+          .filter(Boolean)
+          .map((h) => {
+            const [idx, from, to, amount, asset, ts, txId] = h.split('|');
+            return {
+              hop_index: Number(idx),
+              from_id: from,
+              to_id: to,
+              amount: Number(amount),
+              asset,
+              event_timestamp: Number(ts),
+              tx_id: txId,
+            };
+          }),
+      }))
+      .sort((a: any, b: any) => a.total_hops - b.total_hops || b.total_volume - a.total_volume)
+      .slice(0, 5);
     return {
       engine_mode: 'tigergraph',
       source_wallet_id: sourceWalletId,
       target_wallet_id: targetWalletId,
-      paths_found: paths.length,
+      paths_found: out.paths_found ?? paths.length,
       paths,
+      query_latency_ms: latencyMs,
+    };
+  }
+
+  public async getRiskPropagation(maxHops: number = 4, limit: number = 25): Promise<import('./types').RiskPropagationResult> {
+    const { results, latencyMs } = await this.executeQuery<any[]>('ghostshield_risk_propagation', {
+      max_hops: maxHops,
+      result_limit: limit,
+      scope: this.scope,
+    });
+    const out: Record<string, any> = Object.assign({}, ...(results || []));
+    return {
+      engine_mode: 'tigergraph',
+      seed_wallets: out.seed_wallets ?? 0,
+      tainted_wallets: out.tainted_wallets ?? 0,
+      top_risk_wallets: (out.top_risk_wallets || []).map((w: any) => ({
+        wallet_id: w.wallet_id,
+        label: w.label,
+        score: parseFloat(Number(w.score).toFixed(4)),
+        hop: w.hop,
+      })),
       query_latency_ms: latencyMs,
     };
   }
@@ -335,7 +411,7 @@ export class TigerGraphAdapter implements GraphProvider {
 
     try {
       const startTime = performance.now();
-      const testRes = await fetch(`${this.host}/echo`, {
+      const testRes = await fetch(`${this.host}/api/ping`, {
         signal: AbortSignal.timeout(Math.min(this.timeoutMs, 4000)),
       });
       const latency = Math.round(performance.now() - startTime);
@@ -354,7 +430,7 @@ export class TigerGraphAdapter implements GraphProvider {
         status: 'DEGRADED',
         mode: 'tigergraph',
         latency_ms: latency,
-        message: `TigerGraph echo responded with HTTP ${testRes.status}`,
+        message: `TigerGraph ping responded with HTTP ${testRes.status}`,
       };
     } catch (err: any) {
       return {

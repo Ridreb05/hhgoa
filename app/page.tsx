@@ -148,7 +148,7 @@ export default function HomePage() {
             <div className="flex items-center gap-4">
               <span>Deterministic Attribution (0–100)</span>
               <span>•</span>
-              <span className="text-[#edcd8c]">100% Benchmark Accuracy</span>
+              <span className="text-[#edcd8c]">5 Curated Fixtures · See BENCHMARK.md</span>
             </div>
           </div>
         </div>

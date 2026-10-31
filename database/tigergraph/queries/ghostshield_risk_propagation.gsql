@@ -1,0 +1,92 @@
+// ==============================================================================
+// GSQL Query H: ghostshield_risk_propagation
+// Value-weighted taint propagation from known-bad seed wallets (haircut model):
+// a wallet that receives funds from a tainted wallet inherits
+//     decay * sender_score * (amount / sender_total_flow)
+// so a seed splitting funds across many recipients dilutes taint per recipient,
+// and hubs that merely receive a sliver stay low. Runs entirely in-engine in
+// max_hops BSP supersteps; optionally writes the score back to Wallet.risk_score.
+// direction: "forward"  taint follows the money downstream (default)
+//           "backward" taint flows to the wallets that funded a seed
+//           "both"     guilt by association in either direction
+// scope: only seeds whose provenance starts with this prefix are used ("" = all seeds), so
+//        several datasets can share one graph without contaminating each other
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+
+CREATE OR REPLACE QUERY ghostshield_risk_propagation(
+    INT max_hops = 4,
+    DOUBLE decay = 0.9,
+    INT result_limit = 100,
+    BOOL write_back = FALSE,
+    STRING direction = "forward",
+    STRING scope = ""
+) FOR GRAPH GhostShieldGraph {
+    TYPEDEF TUPLE<DOUBLE score, STRING wallet_id, INT hop, STRING label> ScoredWallet;
+
+    SumAccum<DOUBLE> @flow_total;
+    SumAccum<DOUBLE> @recv;
+    SumAccum<DOUBLE> @send;
+    SumAccum<DOUBLE> @score;
+    MinAccum<INT> @hop = 1000;
+    HeapAccum<ScoredWallet>(result_limit, score DESC) @@top;
+    SumAccum<INT> @@tainted;
+    SumAccum<INT> @@seed_count;
+    BOOL fwd = (direction == "forward" OR direction == "both");
+    BOOL bwd = (direction == "backward" OR direction == "both");
+
+    Seeds = SELECT w FROM Wallet:w
+            WHERE w.is_risk_seed == TRUE AND (scope == "" OR instr(w.provenance, scope) == 0)
+            ACCUM @@seed_count += 1
+            POST-ACCUM w.@send += 1.0, w.@score += 1.0, w.@hop += 0;
+
+    // Total flow of every wallet that can transmit taint (denominator of the haircut).
+    IF fwd THEN
+        SF = SELECT s FROM Wallet:s -(TRANSFERRED_TO>:e)- Wallet:t
+             ACCUM s.@flow_total += e.amount;
+    END;
+    IF bwd THEN
+        SB = SELECT s FROM Wallet:s -(REVERSE_TRANSFERRED_TO>:e)- Wallet:t
+             ACCUM s.@flow_total += e.amount;
+    END;
+
+    Frontier = Seeds;
+    INT step = 0;
+    WHILE Frontier.size() > 0 LIMIT max_hops DO
+        step = step + 1;
+        Reached = SELECT w FROM Wallet:w WHERE FALSE;
+        IF fwd THEN
+            NF = SELECT t
+                 FROM Frontier:s -(TRANSFERRED_TO>:e)- Wallet:t
+                 WHERE t.is_risk_seed == FALSE AND s.@flow_total > 0
+                 ACCUM t.@recv += decay * s.@send * e.amount / s.@flow_total;
+            Reached = Reached UNION NF;
+        END;
+        IF bwd THEN
+            NB = SELECT t
+                 FROM Frontier:s -(REVERSE_TRANSFERRED_TO>:e)- Wallet:t
+                 WHERE t.is_risk_seed == FALSE AND s.@flow_total > 0
+                 ACCUM t.@recv += decay * s.@send * e.amount / s.@flow_total;
+            Reached = Reached UNION NB;
+        END;
+
+        Spent = SELECT s FROM Frontier:s POST-ACCUM s.@send = 0.0;
+
+        Frontier = SELECT t FROM Reached:t
+                   POST-ACCUM t.@send += t.@recv,
+                              t.@score += t.@recv,
+                              t.@hop += step,
+                              t.@recv = 0.0;
+    END;
+
+    Tainted = SELECT w FROM Wallet:w
+              WHERE w.@score > 0 AND w.is_risk_seed == FALSE
+              ACCUM @@tainted += 1,
+                    @@top += ScoredWallet(w.@score, w.id, w.@hop, w.label)
+              POST-ACCUM IF write_back THEN w.risk_score = w.@score END;
+
+    PRINT @@seed_count AS seed_wallets,
+          @@tainted AS tainted_wallets,
+          @@top AS top_risk_wallets;
+}

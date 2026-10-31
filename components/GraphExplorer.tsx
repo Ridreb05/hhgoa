@@ -359,7 +359,7 @@ export function GraphExplorer({
                     strokeDasharray={isSusCycle ? '4 2' : 'none'}
                     markerEnd={markerEnd}
                   />
-                  {link.amount && (
+                  {link.amount && (visibleLinks.length <= 60 || isSusCycle) && (
                     <text
                       x={((sourceNode.x || 400) + (targetNode.x || 400)) / 2}
                       y={((sourceNode.y || 275) + (targetNode.y || 275)) / 2 - 4}

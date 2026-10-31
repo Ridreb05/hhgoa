@@ -1,0 +1,15 @@
+// ==============================================================================
+// Migration 001: make vertex ids addressable inside GSQL and add write-back
+// attributes for graph algorithms. Non-destructive: only ADDs attributes.
+// Idempotence is handled by scripts/tg_admin.ts (skips when `id` already exists).
+// ==============================================================================
+USE GLOBAL
+
+CREATE GLOBAL SCHEMA_CHANGE JOB ghostshield_001_queryable_ids {
+    ALTER VERTEX Wallet ADD ATTRIBUTE (id STRING, risk_score DOUBLE DEFAULT 0, community_id STRING DEFAULT "");
+    ALTER VERTEX FundingSource ADD ATTRIBUTE (id STRING);
+    ALTER VERTEX Agent ADD ATTRIBUTE (id STRING);
+    ALTER VERTEX SmartContract ADD ATTRIBUTE (id STRING);
+}
+
+RUN GLOBAL SCHEMA_CHANGE JOB ghostshield_001_queryable_ids

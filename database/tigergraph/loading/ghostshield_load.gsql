@@ -1,0 +1,39 @@
+// ==============================================================================
+// GHOSTSHIELD: Loading job (CSV streamed to /restpp/ddl/<graph>?tag=ghostshield_load)
+// Column order matches scripts/seed_tigergraph.ts. Reverse edges are created
+// automatically by the engine.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+
+CREATE LOADING JOB ghostshield_load FOR GRAPH GhostShieldGraph {
+    DEFINE FILENAME wallets;
+    DEFINE FILENAME funding_sources;
+    DEFINE FILENAME agents;
+    DEFINE FILENAME contracts;
+    DEFINE FILENAME transfers;
+    DEFINE FILENAME funding_edges;
+    DEFINE FILENAME control_edges;
+    DEFINE FILENAME delegation_edges;
+    DEFINE FILENAME interactions;
+
+    // wallets: id, network, label, creation_time, provenance, is_risk_seed
+    LOAD wallets TO VERTEX Wallet VALUES($0, $1, $2, $3, $4, $5, $0, 0.0, "") USING SEPARATOR=",", QUOTE="double";
+    // funding_sources: id, category, label, provenance
+    LOAD funding_sources TO VERTEX FundingSource VALUES($0, $1, $2, $3, $0) USING SEPARATOR=",", QUOTE="double";
+    // agents: id, display_name, agent_type, provenance
+    LOAD agents TO VERTEX Agent VALUES($0, $1, $2, $3, $0) USING SEPARATOR=",", QUOTE="double";
+    // contracts: id, network, protocol, category
+    LOAD contracts TO VERTEX SmartContract VALUES($0, $1, $2, $3, $0) USING SEPARATOR=",", QUOTE="double";
+
+    // transfers: from, to, amount, asset, event_timestamp, tx_id
+    LOAD transfers TO EDGE TRANSFERRED_TO VALUES($0, $1, $2, $3, $4, $5) USING SEPARATOR=",", QUOTE="double";
+    // funding_edges: from, to, amount, funding_timestamp, tx_id
+    LOAD funding_edges TO EDGE FUNDED VALUES($0, $1, $2, $3, $4) USING SEPARATOR=",", QUOTE="double";
+    // control_edges: from, to, authority_level, delegation_timestamp
+    LOAD control_edges TO EDGE CONTROLS VALUES($0, $1, $2, $3) USING SEPARATOR=",", QUOTE="double";
+    // delegation_edges: from, to, role, depth
+    LOAD delegation_edges TO EDGE DELEGATES_TO VALUES($0, $1, $2, $3) USING SEPARATOR=",", QUOTE="double";
+    // interactions: from, to, method, interaction_timestamp, tx_id
+    LOAD interactions TO EDGE INTERACTS_WITH VALUES($0, $1, $2, $3, $4) USING SEPARATOR=",", QUOTE="double";
+}

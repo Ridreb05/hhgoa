@@ -1,0 +1,41 @@
+// ==============================================================================
+// GSQL Query S: ghostshield_synth_amplify   (SCALE TESTING ONLY)
+// Server-side synthetic benign traffic: inserts wallet_count new wallets and
+// transfers_per_wallet random transfers each, with hub-biased targets and
+// timestamps spread over 90 days. Used because the Savanna proxy limits external
+// ingestion to ~100 edges/s, which cannot reach meaningful scale. All inserted
+// wallets have provenance "synthetic_amplify" so they are identifiable.
+// ==============================================================================
+
+USE GRAPH GhostShieldGraph
+
+CREATE OR REPLACE QUERY ghostshield_synth_amplify(
+    INT first_index = 0,
+    INT wallet_count = 1000,
+    INT transfers_per_wallet = 4,
+    INT hubs = 300,
+    INT base_ts = 1700000000
+) FOR GRAPH GhostShieldGraph {
+    SumAccum<INT> @@wallets;
+    SumAccum<INT> @@transfers;
+
+    FOREACH i IN RANGE[first_index, first_index + wallet_count - 1] DO
+        INSERT INTO Wallet (PRIMARY_ID, network, label, creation_time, provenance, is_risk_seed, id, risk_score, community_id)
+            VALUES ("synth_" + to_string(i), "ethereum", "Synthetic " + to_string(i), base_ts - 86400, "synthetic_amplify", FALSE, "synth_" + to_string(i), 0.0, "");
+        @@wallets += 1;
+    END;
+
+    FOREACH i IN RANGE[first_index, first_index + wallet_count - 1] DO
+        FOREACH j IN RANGE[1, transfers_per_wallet] DO
+            INT dest = CASE WHEN rand() < 0.55 THEN float_to_int(rand() * hubs) ELSE float_to_int(rand() * (first_index + wallet_count)) END;
+            IF dest != i THEN
+                INSERT INTO TRANSFERRED_TO (FROM, TO, amount, asset, event_timestamp, tx_id)
+                    VALUES ("synth_" + to_string(i) Wallet, "synth_" + to_string(dest) Wallet,
+                            0.05 + rand() * 2.0, "ETH", base_ts + float_to_int(rand() * 7776000), "stx_" + to_string(i) + "_" + to_string(j));
+                @@transfers += 1;
+            END;
+        END;
+    END;
+
+    PRINT @@wallets AS wallets_inserted, @@transfers AS transfers_inserted;
+}

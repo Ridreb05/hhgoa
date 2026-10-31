@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { DashboardMetrics } from '@/lib/graph/types';
 import demoData from '@/data/demo/entities.json';
+import { PropagationPanel } from '@/components/PropagationPanel';
 import {
   Cpu,
   Clock,
@@ -46,7 +47,7 @@ export function OverviewView({ metrics, onSelectScenario, onNavigateTab }: Overv
               GhostShield Graph Forensics Console
             </h1>
             <span className="text-[11px] font-mono text-[#edcd8c] bg-[#07090e] px-2 py-0.5 border border-[#303139] rounded">
-              TigerGraph GSQL 3.x
+              TigerGraph GSQL
             </span>
           </div>
           <p className="text-xs text-[#c9ced8] font-sans">
@@ -142,6 +143,8 @@ export function OverviewView({ metrics, onSelectScenario, onNavigateTab }: Overv
         </div>
       </div>
 
+      <PropagationPanel />
+
       {/* 3. CORE OPERATIONAL GRID (BENCHMARK SUITE + ACTIVE THREAT REGISTER) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Ground-Truth Scenario Benchmark Suite (7 cols) */}
@@ -152,7 +155,7 @@ export function OverviewView({ metrics, onSelectScenario, onNavigateTab }: Overv
                 Ground-Truth Scenario Suite
               </h2>
               <span className="px-2 py-0.5 rounded-[40px] bg-[#07090e] border border-[#303139] text-[#edcd8c] font-mono text-[10px] font-bold">
-                100% BENCHMARK ACCURACY
+                5 CURATED SCENARIOS
               </span>
             </div>
             <button

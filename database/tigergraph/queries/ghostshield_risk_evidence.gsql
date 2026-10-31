@@ -30,43 +30,43 @@ CREATE OR REPLACE QUERY ghostshield_risk_evidence(
     Start = { target_wallet };
 
     // 1. Direct Transfer Activity & Neighbor Counts
-    OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt
+    OutTx = SELECT tgt FROM Start:src -(TRANSFERRED_TO>:e)- Wallet:tgt
             ACCUM 
                 @@outgoing_tx_count += 1,
                 @@total_transferred_volume += e.amount,
                 @@total_neighbor_wallets += 1;
 
-    InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO:e)-> Wallet:src
+    InTx = SELECT src FROM Start:tgt -(REVERSE_TRANSFERRED_TO>:e)- Wallet:src
            ACCUM 
                @@incoming_tx_count += 1,
                @@total_transferred_volume += e.amount,
                @@total_neighbor_wallets += 1;
 
     // 2. Identify Target Wallet Upstream Funding Sources
-    TargetFS = SELECT fs FROM Start:tgt -(FUNDED_BY:e)-> FundingSource:fs
-               ACCUM @@target_funding_sources += fs.label;
+    TargetFS = SELECT fs FROM Start:tgt -(FUNDED_BY>:e)- FundingSource:fs
+               ACCUM @@target_funding_sources += fs.id;
 
     // 3. Shared funding with counterparty via direct graph hop
     IF counterparty_id != "" THEN
-        Common = SELECT fs FROM TargetFS:fs -(FUNDED:e)-> Wallet:w
-                 WHERE w.label == counterparty_id
+        Common = SELECT fs FROM TargetFS:fs -(FUNDED>:e)- Wallet:w
+                 WHERE w.id == counterparty_id
                  ACCUM 
-                     @@common_funding_sources += fs.label,
+                     @@common_funding_sources += fs.id,
                      @@shared_funding_sources_count += 1,
                      @@evidence_flags += "COMMON_FUNDING_SOURCE_DETECTED";
     END;
 
     // 4. Proximity to Known Risk Seeds
-    OutSeeds = SELECT w FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:w
+    OutSeeds = SELECT w FROM Start:src -(TRANSFERRED_TO>:e)- Wallet:w
                WHERE w.is_risk_seed
                ACCUM 
-                   @@connected_risk_seeds += w.label,
+                   @@connected_risk_seeds += w.id,
                    @@risk_seed_connections_count += 1;
 
-    InSeeds = SELECT w FROM Start:tgt -(REVERSE_TRANSFERRED_TO:e)-> Wallet:w
+    InSeeds = SELECT w FROM Start:tgt -(REVERSE_TRANSFERRED_TO>:e)- Wallet:w
               WHERE w.is_risk_seed
               ACCUM 
-                  @@connected_risk_seeds += w.label,
+                  @@connected_risk_seeds += w.id,
                   @@risk_seed_connections_count += 1;
 
     IF @@risk_seed_connections_count > 0 THEN
@@ -74,10 +74,10 @@ CREATE OR REPLACE QUERY ghostshield_risk_evidence(
     END;
 
     // 5. Agent Control & Delegation Chains
-    Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY:e)-> Agent:a
+    Agents = SELECT a FROM Start:tgt -(CONTROLLED_BY>:e)- Agent:a
              ACCUM @@controlling_agents_count += 1;
 
-    Delegated = SELECT a2 FROM Agents:a1 -(DELEGATES_TO:e)-> Agent:a2
+    Delegated = SELECT a2 FROM Agents:a1 -(DELEGATES_TO>:e)- Agent:a2
                 ACCUM @@delegated_agents_count += 1;
 
     IF @@controlling_agents_count > 0 THEN
@@ -87,20 +87,23 @@ CREATE OR REPLACE QUERY ghostshield_risk_evidence(
         @@evidence_flags += "MULTI_TIER_AGENT_DELEGATION";
     END;
 
-    // 6. Direct 3-Hop Cycle check back to target_wallet
-    H1 = SELECT tgt FROM Start:src -(TRANSFERRED_TO:e)-> Wallet:tgt;
-    H2 = SELECT tgt FROM H1:src -(TRANSFERRED_TO:e)-> Wallet:tgt;
-    H3 = SELECT tgt FROM H2:src -(TRANSFERRED_TO:e)-> Wallet:tgt
-         WHERE tgt == target_wallet
-         ACCUM
-             @@detected_cycle_count += 1,
-             @@cycle_participant_wallets += src.label;
+    // 6. Temporally ordered 3-hop cycle through the target, closed inside the window
+    Cyc = SELECT a FROM Start:a -(TRANSFERRED_TO>:e1)- Wallet:b -(TRANSFERRED_TO>:e2)- Wallet:c -(TRANSFERRED_TO>:e3)- Wallet:z
+          WHERE z == target_wallet
+            AND b != target_wallet AND c != target_wallet AND b != c
+          ACCUM
+              IF e1.event_timestamp <= e2.event_timestamp AND e2.event_timestamp <= e3.event_timestamp
+                 AND e3.event_timestamp - e1.event_timestamp <= time_window_seconds THEN
+                  @@detected_cycle_count += 1,
+                  @@cycle_participant_wallets += b.id,
+                  @@cycle_participant_wallets += c.id
+              END;
 
     IF @@detected_cycle_count > 0 THEN
         @@evidence_flags += "RAPID_TEMPORAL_CYCLE_DETECTED";
     END;
 
-    PRINT target_wallet.label AS target_wallet_id,
+    PRINT target_wallet.id AS target_wallet_id,
           counterparty_id AS counterparty_id,
           @@total_neighbor_wallets AS neighbor_wallets_count,
           @@outgoing_tx_count AS outgoing_tx_count,
@@ -114,5 +117,7 @@ CREATE OR REPLACE QUERY ghostshield_risk_evidence(
           @@delegated_agents_count AS delegated_agents_count,
           @@detected_cycle_count AS detected_cycle_count,
           @@cycle_participant_wallets AS cycle_participant_wallets,
-          @@evidence_flags AS evidence_flags;
+          @@evidence_flags AS evidence_flags,
+          target_wallet.risk_score AS propagated_risk_score,
+          target_wallet.community_id AS community_id;
 }

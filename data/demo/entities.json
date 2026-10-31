@@ -73,8 +73,8 @@
       { "id": "0x44d...airdrop1", "network": "ethereum", "label": "Airdrop Claimer 1", "creation_time": 1699000000, "provenance": "synthetic_seed", "is_risk_seed": false },
       { "id": "0x55e...airdrop2", "network": "ethereum", "label": "Airdrop Claimer 2", "creation_time": 1699000100, "provenance": "synthetic_seed", "is_risk_seed": false },
       { "id": "0x66f...target4", "network": "ethereum", "label": "Compromised Treasury", "creation_time": 1685000000, "provenance": "synthetic_seed", "is_risk_seed": false },
-      { "id": "0x999...seed_exploit", "network": "ethereum", "label": "Known Exploit Seed", "creation_time": 1670000000, "provenance": "ofac_sanctions_test", "is_risk_seed": true },
-      { "id": "0xaaa...seed_laundering", "network": "polygon", "label": "Known Mixer Drainer", "creation_time": 1680000000, "provenance": "threat_intel_seed", "is_risk_seed": true },
+      { "id": "0x999...seed_exploit", "network": "ethereum", "label": "Known Exploit Seed", "creation_time": 1670000000, "provenance": "synthetic_ofac_test", "is_risk_seed": true },
+      { "id": "0xaaa...seed_laundering", "network": "polygon", "label": "Known Mixer Drainer", "creation_time": 1680000000, "provenance": "synthetic_threat_intel", "is_risk_seed": true },
       { "id": "0xbbb...clean_lp", "network": "ethereum", "label": "Legitimate Liquidity Provider", "creation_time": 1692000000, "provenance": "synthetic_seed", "is_risk_seed": false }
     ],
     "funding_sources": [

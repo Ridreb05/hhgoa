@@ -3,7 +3,7 @@
 
 [![CI](https://github.com/your-username/ghostshield/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/ghostshield/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![TigerGraph](https://img.shields.io/badge/Database-TigerGraph_3.x/4.x-orange.svg)](https://www.tigergraph.com/)
+[![TigerGraph](https://img.shields.io/badge/Database-TigerGraph_4.x_Savanna-orange.svg)](https://www.tigergraph.com/)
 [![Next.js 14](https://img.shields.io/badge/Framework-Next.js_14-black.svg)](https://nextjs.org/)
 
 ---
@@ -49,17 +49,17 @@ graph TD
 Located in [`database/tigergraph/schema.gsql`](database/tigergraph/schema.gsql):
 
 ### Vertex Types
-* `Wallet`: Cryptographic accounts (`id`, `network`, `label`, `creation_time`, `provenance`, `is_risk_seed`).
+* `Wallet`: Cryptographic accounts (`id`, `network`, `label`, `creation_time`, `provenance`, `is_risk_seed`, plus `risk_score` and `community_id` written back by the algorithms).
 * `FundingSource`: Upstream liquidity origins (`id`, `category` [MIXER, EXCHANGE, BRIDGE, TREASURY], `label`, `provenance`).
 * `Agent`: Autonomous off-chain/on-chain decision entities (`id`, `display_name`, `agent_type`, `provenance`).
 * `SmartContract`: Protocols and pools (`id`, `network`, `protocol`, `category`).
 
 ### Edge Types
 * `TRANSFERRED_TO` (`Wallet → Wallet`): P2P transfers with `amount`, `asset`, `event_timestamp`, and `tx_id`.
-* `FUNDED` (`FundingSource → Wallet`): Upstream deposit events with `amount`, `funding_timestamp`, and `event_id`.
-* `CONTROLS` (`Agent → Wallet`): Agent execution authority with `provenance` and `recorded_at`.
-* `DELEGATES_TO` (`Agent → Agent`): Multi-tier delegation hierarchies with `delegation_type`.
-* `INTERACTS_WITH` (`Wallet → SmartContract`): Contract calls with `interaction_timestamp` and `interaction_type`.
+* `FUNDED` (`FundingSource → Wallet`): Upstream deposit events with `amount`, `funding_timestamp`, and `tx_id`.
+* `CONTROLS` (`Agent → Wallet`): Agent execution authority with `authority_level` and `delegation_timestamp`.
+* `DELEGATES_TO` (`Agent → Agent`): Multi-tier delegation hierarchies with `role` and `depth`.
+* `INTERACTS_WITH` (`Wallet → SmartContract`): Contract calls with `method`, `interaction_timestamp` and `tx_id`.
 
 ---
 
@@ -70,11 +70,13 @@ Located in [`database/tigergraph/queries/`](database/tigergraph/queries/):
 | Query File | Description & GSQL Features Used |
 | :--- | :--- |
 | [`ghostshield_dashboard_metrics.gsql`](database/tigergraph/queries/ghostshield_dashboard_metrics.gsql) | Computes global vertex counts, edge counts, cumulative volume, and latest timestamps using `SumAccum`, `MaxAccum`, and parallel vertex sets. |
-| [`ghostshield_detect_cycles.gsql`](database/tigergraph/queries/ghostshield_detect_cycles.gsql) | Performs bounded directed cycle detection ($k \in [3, 4]$) with an explicit chronological order and temporal window constraint ($\Delta t = t_{\max} - t_{\min} \le 600\text{s}$), and calculates volume retention ratios. |
-| [`ghostshield_investigate_wallet.gsql`](database/tigergraph/queries/ghostshield_investigate_wallet.gsql) | Traverses a bounded 1-hop and 2-hop neighborhood from a target wallet, extracting incoming/outgoing transfers, direct funding, shared funding peer wallets, controlling agents, and risk seed proximity. |
-| [`ghostshield_risk_evidence.gsql`](database/tigergraph/queries/ghostshield_risk_evidence.gsql) | Extracts multi-modal risk features across cycle participation, common funding overlap, and seed proximity using `SetAccum` intersections and `OrAccum`. |
-| [`ghostshield_sybil_clusters.gsql`](database/tigergraph/queries/ghostshield_sybil_clusters.gsql) | Identifies coordinated Sybil syndicates sharing high-degree funding sources (mixers, bridges, CEX sweeps) or shared controlling agents using vertex `SetAccum` and parallel set clustering. |
-| [`ghostshield_path_find.gsql`](database/tigergraph/queries/ghostshield_path_find.gsql) | Reconstructs step-by-step bounded multi-hop transaction paths between any source wallet and target entity with timestamps, transaction IDs, and volume loss tracking. |
+| [`ghostshield_detect_cycles.gsql`](database/tigergraph/queries/ghostshield_detect_cycles.gsql) | Temporally ordered round trips of 3 to 5 hops closed inside a time window, found with in-engine pattern matching; reports volume retention per cycle. |
+| [`ghostshield_sybil_clusters.gsql`](database/tigergraph/queries/ghostshield_sybil_clusters.gsql) | Connected components (min-label propagation) over shared small-fleet agent control and coordinated funding bursts. Mega-funders and large legitimate bot fleets are pruned as hubs. Optional `community_id` write-back. |
+| [`ghostshield_risk_propagation.gsql`](database/tigergraph/queries/ghostshield_risk_propagation.gsql) | Value-weighted forward taint propagation (haircut model) from known-bad seeds in BSP supersteps, `HeapAccum` top-k, optional `risk_score` write-back. |
+| [`ghostshield_path_find.gsql`](database/tigergraph/queries/ghostshield_path_find.gsql) | All simple 1 to 4 hop paths between two wallets with per-hop amount, asset, timestamp and tx id; optional temporal ordering. |
+| [`ghostshield_investigate_wallet.gsql`](database/tigergraph/queries/ghostshield_investigate_wallet.gsql) | Bounded forensic neighborhood: transfers in both directions, upstream funding, funder peers, controlling agents and delegations, protocol interactions, adjacent risk wallets. |
+| [`ghostshield_risk_evidence.gsql`](database/tigergraph/queries/ghostshield_risk_evidence.gsql) | Evidence counters for the policy engine: windowed cycle through the target, common funding with a counterparty, seed exposure, agent chains. |
+| [`ghostshield_topology.gsql`](database/tigergraph/queries/ghostshield_topology.gsql) | Bounded subgraph for the explorer: the hot subgraph (seeds, tainted, clustered) or a wallet neighborhood, capped by `vertex_limit`. |
 
 ---
 
@@ -117,48 +119,45 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 8. Enabling Live TigerGraph Cloud Mode
 
-To execute queries against a live TigerGraph Cloud instance:
+```bash
+# .env.local
+GHOSTSHIELD_ENGINE_MODE=tigergraph
+TIGERGRAPH_HOST=https://tg-<id>.tg-<id>.i.tgcloud.io
+TIGERGRAPH_GRAPH_NAME=GhostShieldGraph
+TIGERGRAPH_SECRET=<32 character database secret>
 
-1. Provision a free cluster on [TigerGraph Cloud](https://tgcloud.io).
-2. Follow the setup instructions in [`docs/TIGERGRAPH_SETUP.md`](docs/TIGERGRAPH_SETUP.md) to install `database/tigergraph/setup_graph.gsql` and load `database/tigergraph/load_data.gsql`.
-3. Create `.env.local` with your cluster credentials:
-   ```bash
-   GHOSTSHIELD_ENGINE_MODE=tigergraph
-   TIGERGRAPH_HOST=https://your-cluster.i.tgcloud.io
-   TIGERGRAPH_GRAPH_NAME=GhostShieldGraph
-   TIGERGRAPH_USERNAME=tigergraph
-   TIGERGRAPH_PASSWORD=your_password
-   ```
-4. Restart the development server (`npm run dev`). The header badge will immediately switch to **TIGERGRAPH LIVE** with real-time measured REST++ latency.
+npm run tg:setup                            # schema + migrations, create queries, compile and install
+npm run seed:tigergraph -- --wallets 20000  # GSQL loading job: demo scenarios + 18k wallet / 108k edge dataset
+npm run dev                                 # header badge switches to TG-CLOUD
+```
+
+Full walkthrough and the query catalogue: [`docs/TIGERGRAPH_SETUP.md`](docs/TIGERGRAPH_SETUP.md).
 
 ---
 
-## 9. Running Tests & Benchmarks
+## 9. Tests & Benchmarks
 
 ```bash
-# Run Vitest unit & integration test suite
-npm run test
-
-# Run synthetic ground truth precision/recall benchmark
-npm run evaluate
-
-# Run Next.js production build verification
-npm run build
+npm run test            # unit tests (generator invariants, adapter behaviour with mocked HTTP, risk engine, demo graph)
+npm run typecheck
+npm run evaluate        # 5 curated demo scenarios (fixtures, in-memory)
+npm run evaluate:live   # scores the installed GSQL queries on the cluster against planted ground truth -> docs/BENCHMARK.md
+npm run baselines       # naive baselines on the same data -> docs/BASELINES.md
+npm run scale:live      # grows the graph server-side to ~1M transfers and re-measures everything -> docs/SCALE.md
+npm run evasion:live    # slow rings, hub-routed rings, fragmented farms; window trade-off -> docs/EVASION.md
+npm run evaluate:elliptic   # REAL labeled Bitcoin graph (Elliptic): held-out taint accuracy -> docs/REAL_DATA_ELLIPTIC.md
+npm run evaluate:ethereum   # REAL Ethereum blocks: what the detectors flag + audit -> docs/REAL_DATA_ETHEREUM.md
+npm run test:live       # integration tests against the cluster (needs a seeded workspace)
 ```
 
 ---
 
-## 10. Synthetic Benchmark Results
+## 10. Results
 
-Executed via `npm run evaluate`:
-
-* **Accuracy:** 100.0%
-* **Precision:** 100.0%
-* **Recall:** 100.0%
-* **F1 Score:** 100.0%
-* **Confusion Matrix:** TP: 2, TN: 3, FP: 0, FN: 0
-
-*(Measured over curated synthetic ground truth fixtures. See [`docs/EVALUATION.md`](docs/EVALUATION.md) for full breakdown and caveats).*
+Real-data results: [`docs/REAL_DATA.md`](docs/REAL_DATA.md) (Elliptic labeled Bitcoin graph, real Ethereum blocks). Synthetic results: [`docs/BENCHMARK.md`](docs/BENCHMARK.md) (quality), [`docs/SCALE.md`](docs/SCALE.md) (up to ~1M transfers), [`docs/BASELINES.md`](docs/BASELINES.md) (what each design choice buys), [`docs/EVASION.md`](docs/EVASION.md) (what it misses). The benchmark run: detector precision/recall against planted
+patterns **and planted hard negatives** (slow round-trips, exchange crowds, legitimate bot fleets), plus p50/p95 query latency.
+The data is synthetic; these numbers validate the detectors on known structure and are not a real-world accuracy claim.
+The five-scenario fixture suite (`npm run evaluate`) is a regression check, not a benchmark.
 
 ---
 
@@ -177,6 +176,13 @@ Executed via `npm run evaluate`:
 ---
 
 ## 12. Known Limitations & Scope Boundaries
+
+* **Synthetic benchmarks vs real data.** `BENCHMARK.md` / `SCALE.md` use a generated graph with planted patterns. Real-data evidence is in `docs/REAL_DATA*.md`: labeled Bitcoin (taint accuracy) and unlabeled Ethereum (behaviour audit, no precision claim). No labeled Ethereum fraud dataset was used.
+* **Scale tested:** see `docs/SCALE.md` (about 1M transfers of server-generated benign noise on the smallest Savanna workspace). Billion-edge behaviour is unmeasured.
+* **One edge per ordered wallet pair** (`TRANSFERRED_TO` has no discriminator); see `docs/TIGERGRAPH_SETUP.md` section 5.
+* **Cycle detection is 3 to 5 hops** inside a time window, by temporal state propagation.
+* **Demo mode differs from live mode for Sybil clustering.** Demo uses simple funder/agent grouping suited to a 12-wallet fixture; live mode uses connected components with hub pruning.
+* **Free-tier workspaces auto-suspend** when idle and take about a minute to wake; the first request after a pause can fail with a "starting" message.
 
 * **Simulation Gateway:** GhostShield generates advisory risk assessments (`ALLOW`, `REVIEW`, `REJECT`) for transaction gatekeeping; it does not hold custody or sign live transactions.
 * **Corroborating Signals:** Participating in a cycle or sharing a centralized exchange deposit address does not automatically prove criminal intent; the system treats these as explainable risk signals for security analyst review.

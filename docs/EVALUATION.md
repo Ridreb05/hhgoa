@@ -1,4 +1,14 @@
-# GhostShield: Synthetic Benchmark Evaluation
+# GhostShield: Evaluation
+
+**Two different things are measured here. Do not conflate them.**
+
+1. **Detector benchmark at scale** (`npm run evaluate:live`, results in [`BENCHMARK.md`](BENCHMARK.md)): the in-engine GSQL
+   detectors run on a ~18k wallet / ~108k edge synthetic graph with planted fraud patterns *and planted hard negatives*
+   (slow round-trips, exchange crowds, legitimate bot fleets). Precision and recall are computed against that ground truth.
+2. **Scenario regression suite** (this page, `npm run evaluate`): five hand-written fixtures that check the risk policy
+   engine end to end. With five labelled cases the 100% figures are a regression check, not an accuracy estimate.
+
+Neither is a claim about real-world blockchain data.
 
 ## 1. Evaluation Methodology
 
@@ -21,7 +31,7 @@ To validate the deterministic risk engine and graph traversal queries, GhostShie
 
 ---
 
-## 3. Measured Evaluation Results
+## 3. Scenario Suite Output (regression check, n = 5)
 
 Executed via `npm run evaluate`:
 

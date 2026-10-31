@@ -23,7 +23,10 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Run Vitest Unit & Integration Tests
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run Vitest suite (live-cluster tests are skipped)
         run: npm run test
 
       - name: Run Ground Truth Evaluation Benchmark

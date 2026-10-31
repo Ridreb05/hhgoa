@@ -37,3 +37,10 @@ yarn-error.log*
 .idea/
 .vscode/
 *.tsbuildinfo
+.playwright-mcp/
+
+# generated scale dataset ground truth
+data/generated/
+
+# real datasets are never committed or redistributed
+data/real/
