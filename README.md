@@ -37,7 +37,7 @@
 
 In permissionless systems a new wallet costs nothing, and autonomous AI agents can now create and operate thousands of them. Attackers use that to split one operation across many wallets so that **no single transaction breaks a rule**. Transaction monitoring that inspects rows of `(sender, recipient, amount, timestamp)` one at a time cannot see it.
 
-GhostShield targets three patterns:
+GhostShield targets these three patterns:
 
 | Pattern | What the attacker does | Why row-by-row checks miss it |
 |---|---|---|
